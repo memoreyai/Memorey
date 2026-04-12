@@ -1,5 +1,5 @@
 import React from "react";
-import type { MemoryNode, ApprovalStatus } from "memorey-core";
+import type { MemoryNode, ApprovalStatus } from "../types";
 
 const VAULT_COLORS: Record<string, string> = {
   identity: "#8B5CF6",

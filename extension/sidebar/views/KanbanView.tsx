@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from "react";
-import type { MemoryNode, ApprovalStatus } from "memorey-core";
+import type { MemoryNode, ApprovalStatus } from "../types";
 import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
-import { usePipeline } from "../hooks/usePipeline";
+import { useNodeActions } from "../hooks/useNodeActions";
 import { KanbanBoard } from "../components/KanbanBoard";
 import type { KanbanGroupMode } from "../components/KanbanCard";
 
@@ -37,7 +37,7 @@ function normalizeSource(platform: string): string {
 export function KanbanView() {
   const { allNodes, vaults, currentView } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
-  const { pipeline, refreshState, save } = usePipeline();
+  const actions = useNodeActions();
 
   const [groupMode, setGroupMode] = useState<KanbanGroupMode>("vault");
   const [hideEmpty, setHideEmpty] = useState(false);
@@ -86,7 +86,6 @@ export function KanbanView() {
       return cols;
     }
 
-    // source mode
     const keys = ["claude", "chatgpt", "gemini", "other"];
     const groups = new Map<string, MemoryNode[]>();
     keys.forEach((k) => groups.set(k, []));
@@ -106,9 +105,7 @@ export function KanbanView() {
   }, [allNodes, vaults, groupMode, hideEmpty]);
 
   const handleCardClick = useCallback(
-    (nodeId: string) => {
-      dispatch({ type: "NAVIGATE_TO_NODE", nodeId, from: currentView });
-    },
+    (nodeId: string) => dispatch({ type: "NAVIGATE_TO_NODE", nodeId, from: currentView }),
     [dispatch, currentView]
   );
 
@@ -118,12 +115,10 @@ export function KanbanView() {
       if (!node || node.vault === targetVault) return;
 
       const vaultDef = vaults.find((v) => v.id === targetVault);
-      pipeline.changeNodeVault(nodeId, targetVault);
-      refreshState(pipeline);
-      save(pipeline);
+      void actions.changeNodeVault(nodeId, targetVault);
       showToast(`Moved to ${vaultDef?.name ?? targetVault}`);
     },
-    [allNodes, vaults, pipeline, refreshState, save, showToast]
+    [allNodes, vaults, actions, showToast]
   );
 
   return (
@@ -141,11 +136,7 @@ export function KanbanView() {
           ))}
         </div>
         <label className="memorey-kanban__toggle">
-          <input
-            type="checkbox"
-            checked={hideEmpty}
-            onChange={(e) => setHideEmpty(e.target.checked)}
-          />
+          <input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} />
           <span>Hide empty</span>
         </label>
       </div>
@@ -157,9 +148,7 @@ export function KanbanView() {
         onDrop={groupMode === "vault" ? handleDrop : undefined}
       />
 
-      {toast && (
-        <div className="memorey-toast">{toast}</div>
-      )}
+      {toast && <div className="memorey-toast">{toast}</div>}
     </div>
   );
 }

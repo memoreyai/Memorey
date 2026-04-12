@@ -1,5 +1,5 @@
 import React from "react";
-import type { ApprovalStatus } from "memorey-core";
+import type { ApprovalStatus } from "../types";
 
 const STATUS_CONFIG: Record<ApprovalStatus, { label: string; className: string }> = {
   approved: { label: "Approved", className: "memorey-status-badge--approved" },

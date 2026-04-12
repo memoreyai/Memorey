@@ -1,15 +1,21 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import type { ConversationExchange } from "memorey-core";
-import { useMemoreyDispatch } from "../store/memoreyStore";
-import { usePipeline } from "../hooks/usePipeline";
+import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
+import { useAuthContext } from "../hooks/useAuth";
+import { useDataReload } from "../App";
 import { ImportForm } from "../components/ImportForm";
 import { ImportProgress, type ImportStats } from "../components/ImportProgress";
+
+declare const __WEB_APP_URL__: string;
+const WEB_APP_URL = typeof __WEB_APP_URL__ !== "undefined" ? __WEB_APP_URL__ : "https://memorey.co";
 
 type Phase = "form" | "importing" | "done";
 
 export function ImportView() {
   const dispatch = useMemoreyDispatch();
-  const { pipeline, refreshState, save } = usePipeline();
+  const { vaults } = useMemoreyState();
+  const { token } = useAuthContext();
+  const reload = useDataReload();
 
   const [phase, setPhase] = useState<Phase>("form");
   const [stats, setStats] = useState<ImportStats>({
@@ -23,11 +29,10 @@ export function ImportView() {
     errors: [],
   });
 
-  const abortRef = useRef(false);
-
   const handleImport = useCallback(
     async (exchanges: ConversationExchange[], platform: string) => {
-      abortRef.current = false;
+      if (!token) return;
+
       setPhase("importing");
       setStats({
         total: exchanges.length,
@@ -40,52 +45,63 @@ export function ImportView() {
         errors: [],
       });
 
-      let factsExtracted = 0;
-      let factsAdded = 0;
-      let duplicates = 0;
-      let conflicts = 0;
-      const errors: string[] = [];
+      const conversationText = exchanges
+        .map((e) => `User: ${e.userMessage}\nAssistant: ${e.assistantMessage}`)
+        .join("\n\n");
 
-      for (let i = 0; i < exchanges.length; i++) {
-        if (abortRef.current) break;
+      try {
+        const res = await fetch(`${WEB_APP_URL}/api/graph-builder`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            message: conversationText,
+            vaults: vaults.map((v) => ({ id: v.id, name: v.name })),
+          }),
+        });
 
-        const ex = {
-          ...exchanges[i],
-          platform: platform || exchanges[i].platform,
-        };
-
-        try {
-          const result = await pipeline.processExchange(ex);
-          factsExtracted += result.extracted.facts.length;
-          factsAdded += result.reconciliation.autoApproved + result.reconciliation.pending;
-          duplicates += result.reconciliation.duplicates;
-          conflicts += result.reconciliation.conflicts;
-        } catch (err) {
-          errors.push(`Exchange ${i + 1}: ${err instanceof Error ? err.message : "Unknown error"}`);
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: "Import failed" }));
+          setStats((s) => ({
+            ...s,
+            errors: [(err as { error?: string }).error ?? "Import failed"],
+            isComplete: true,
+          }));
+          setPhase("done");
+          return;
         }
+
+        const result = (await res.json()) as {
+          created?: number;
+          updated?: number;
+          nodes?: unknown[];
+        };
 
         setStats({
           total: exchanges.length,
-          processed: i + 1,
-          factsExtracted,
-          factsAdded,
-          duplicates,
-          conflicts,
-          isComplete: false,
-          errors: [...errors],
+          processed: exchanges.length,
+          factsExtracted: (result.nodes as unknown[])?.length ?? result.created ?? 0,
+          factsAdded: result.created ?? 0,
+          duplicates: 0,
+          conflicts: 0,
+          isComplete: true,
+          errors: [],
         });
 
-        // Yield to UI
-        await new Promise((r) => setTimeout(r, 0));
+        await reload();
+      } catch (err) {
+        setStats((s) => ({
+          ...s,
+          errors: [err instanceof Error ? err.message : "Network error"],
+          isComplete: true,
+        }));
       }
 
-      await save(pipeline);
-      refreshState(pipeline);
-
-      setStats((s) => ({ ...s, isComplete: true }));
       setPhase("done");
     },
-    [pipeline, save, refreshState]
+    [token, vaults, reload]
   );
 
   const handleViewPending = useCallback(() => {

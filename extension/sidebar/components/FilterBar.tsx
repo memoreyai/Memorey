@@ -1,5 +1,5 @@
 import React from "react";
-import type { ApprovalStatus, VaultDefinition } from "memorey-core";
+import type { ApprovalStatus, VaultDefinition } from "../types";
 
 export interface FilterState {
   vault: string;

@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import type { MemoryNode } from "memorey-core";
+import type { MemoryNode } from "../types";
 import { KanbanCard, type KanbanGroupMode } from "./KanbanCard";
 
 interface KanbanColumnProps {

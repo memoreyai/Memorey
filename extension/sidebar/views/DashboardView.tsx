@@ -3,15 +3,17 @@ import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
 import { PLATFORM_ABBREV } from "../utils/colors";
 
 export function DashboardView() {
-  const { stats, recentFacts, pendingNodes, pendingConflicts } = useMemoreyState();
+  const { stats, recentFacts, vaults } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
 
   const totalFacts = stats?.totalFacts ?? 0;
   const activeFacts = stats?.activeFacts ?? 0;
-  const pendingCount = pendingNodes.length;
-  const conflictCount = pendingConflicts.length;
   const vaultBreakdown = stats?.vaultBreakdown ?? {};
   const maxVaultCount = Math.max(1, ...Object.values(vaultBreakdown));
+
+  function resolveVaultName(vaultId: string): string {
+    return vaults.find((v) => v.id === vaultId)?.name ?? vaultId;
+  }
 
   function formatTimestamp(iso: string): string {
     const d = new Date(iso);
@@ -32,13 +34,11 @@ export function DashboardView() {
         <div className="memorey-stats">
           <StatCard label="Total Facts" value={0} />
           <StatCard label="Active" value={0} />
-          <StatCard label="Pending" value={0} />
-          <StatCard label="Conflicts" value={0} />
         </div>
         <div className="memorey-empty">
           <div className="memorey-empty__title">No memories yet</div>
           <div className="memorey-empty__text">
-            Start chatting with any AI and Memorey will extract and organize your personal facts.
+            Import a conversation or create memories in the web app to see them here.
           </div>
         </div>
       </div>
@@ -47,25 +47,11 @@ export function DashboardView() {
 
   return (
     <div className="memorey-dashboard">
-      {/* Stats cards */}
       <div className="memorey-stats">
         <StatCard label="Total Facts" value={totalFacts} />
         <StatCard label="Active" value={activeFacts} />
-        <StatCard
-          label="Pending"
-          value={pendingCount}
-          highlight={pendingCount > 0}
-          onClick={pendingCount > 0 ? () => dispatch({ type: "SET_VIEW", view: "nodes" }) : undefined}
-        />
-        <StatCard
-          label="Conflicts"
-          value={conflictCount}
-          highlight={conflictCount > 0}
-          onClick={conflictCount > 0 ? () => dispatch({ type: "SET_VIEW", view: "conflicts" }) : undefined}
-        />
       </div>
 
-      {/* Recent facts */}
       {recentFacts.length > 0 && (
         <div className="memorey-section">
           <div className="memorey-section__title">Recent Facts</div>
@@ -75,7 +61,7 @@ export function DashboardView() {
                 <div className="memorey-fact-item__text">{node.fact}</div>
                 <div className="memorey-fact-item__meta">
                   <span className="memorey-badge-pill memorey-badge-pill--vault">
-                    {node.vault}
+                    {resolveVaultName(node.vault)}
                   </span>
                   <div className="memorey-confidence">
                     <div className="memorey-confidence__bar">
@@ -88,9 +74,6 @@ export function DashboardView() {
                       {Math.round(node.confidence * 100)}%
                     </span>
                   </div>
-                  <span className={`memorey-badge-pill memorey-badge-pill--${node.status}`}>
-                    {node.status === "auto_approved" ? "auto" : node.status}
-                  </span>
                   <span className="memorey-platform-icon" title={node.source.platform}>
                     {PLATFORM_ABBREV[node.source.platform] ?? node.source.platform.slice(0, 2).toUpperCase()}
                   </span>
@@ -104,7 +87,6 @@ export function DashboardView() {
         </div>
       )}
 
-      {/* Vault breakdown */}
       {Object.keys(vaultBreakdown).length > 0 && (
         <div className="memorey-section">
           <div className="memorey-section__title">Vault Breakdown</div>

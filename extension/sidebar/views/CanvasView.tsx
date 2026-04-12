@@ -1,18 +1,13 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
-import { usePipeline } from "../hooks/usePipeline";
 import { FilterBar, DEFAULT_FILTERS, type FilterState } from "../components/FilterBar";
 import { GraphCanvas } from "../components/GraphCanvas";
 
 export function CanvasView() {
-  const { allNodes, vaults } = useMemoreyState();
+  const { allNodes, vaults, edges } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
-  const { pipeline } = usePipeline();
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-
-  const graphData = useMemo(() => pipeline.exportGraph(), [pipeline]);
-  const allEdges = graphData.edges;
 
   const filteredNodes = useMemo(() => {
     let nodes = [...allNodes];
@@ -32,13 +27,11 @@ export function CanvasView() {
 
   const filteredEdges = useMemo(() => {
     const nodeIds = new Set(filteredNodes.map((n) => n.id));
-    return allEdges.filter((e) => nodeIds.has(e.fromId) && nodeIds.has(e.toId));
-  }, [filteredNodes, allEdges]);
+    return edges.filter((e) => nodeIds.has(e.fromId) && nodeIds.has(e.toId));
+  }, [filteredNodes, edges]);
 
   const handleNodeDoubleClick = useCallback(
-    (nodeId: string) => {
-      dispatch({ type: "NAVIGATE_TO_NODE", nodeId, from: "canvas" });
-    },
+    (nodeId: string) => dispatch({ type: "NAVIGATE_TO_NODE", nodeId, from: "canvas" }),
     [dispatch]
   );
 

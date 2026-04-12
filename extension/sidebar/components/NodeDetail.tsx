@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import type { MemoryNode, MemoryEdge, VaultDefinition } from "memorey-core";
+import type { MemoryNode, MemoryEdge, VaultDefinition } from "../types";
 import { VaultBadge } from "./VaultBadge";
 import { StatusBadge } from "./StatusBadge";
 import { ConfidenceSlider } from "./ConfidenceSlider";

@@ -30,6 +30,22 @@
   }
 }
 
+[data-theme="dark"] {
+  --memorey-bg: #1A1A1A;
+  --memorey-text: #F0F0F0;
+  --memorey-text-secondary: #999999;
+  --memorey-surface: #2A2A2A;
+  --memorey-border: #3A3A3A;
+}
+
+[data-theme="light"] {
+  --memorey-bg: #FFFFFF;
+  --memorey-text: #111111;
+  --memorey-text-secondary: #666666;
+  --memorey-surface: #F5F5F5;
+  --memorey-border: #E0E0E0;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -2575,4 +2591,149 @@ body {
 
 .memorey-settings__toggle-row input[type="checkbox"] {
   accent-color: var(--memorey-success);
+}
+
+.memorey-settings__back-row {
+  margin-bottom: 12px;
+}
+
+.memorey-settings__link {
+  display: inline-block;
+  color: var(--memorey-orange);
+  text-decoration: none;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.memorey-settings__link:hover {
+  text-decoration: underline;
+}
+
+/* ── Login view ── */
+
+.memorey-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: 24px;
+  background: var(--memorey-bg);
+}
+
+.memorey-login__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.memorey-login__logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--memorey-orange);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.memorey-login__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--memorey-text);
+  margin-bottom: 4px;
+}
+
+.memorey-login__subtitle {
+  font-size: 13px;
+  color: var(--memorey-text-secondary);
+  margin-bottom: 24px;
+}
+
+.memorey-login__form {
+  width: 100%;
+  text-align: left;
+}
+
+.memorey-login__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--memorey-text);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.memorey-login__hint {
+  font-size: 12px;
+  color: var(--memorey-text-secondary);
+  margin-bottom: 8px;
+}
+
+.memorey-login__input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 6px;
+  background: var(--memorey-surface);
+  color: var(--memorey-text);
+  font-size: 13px;
+  outline: none;
+  margin-bottom: 8px;
+}
+.memorey-login__input:focus {
+  border-color: var(--memorey-orange);
+}
+
+.memorey-login__error {
+  font-size: 12px;
+  color: var(--memorey-error);
+  margin-bottom: 8px;
+}
+
+.memorey-login__btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: var(--memorey-orange);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memorey-login__btn:hover:not(:disabled) {
+  background: var(--memorey-orange-hover);
+}
+.memorey-login__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.memorey-login__footer {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.memorey-login__footer-text {
+  font-size: 12px;
+  color: var(--memorey-text-secondary);
+}
+
+.memorey-login__link {
+  font-size: 13px;
+  color: var(--memorey-orange);
+  text-decoration: none;
+  font-weight: 500;
+}
+.memorey-login__link:hover {
+  text-decoration: underline;
 }

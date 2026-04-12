@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { MemoryEdge } from "memorey-core";
+import type { MemoryEdge } from "../types";
 
 interface GraphEdgeProps {
   edge: MemoryEdge;

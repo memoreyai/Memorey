@@ -1,5 +1,5 @@
 import React from "react";
-import type { MemoryNode } from "memorey-core";
+import type { MemoryNode } from "../types";
 import { KanbanColumn } from "./KanbanColumn";
 import type { KanbanGroupMode } from "./KanbanCard";
 

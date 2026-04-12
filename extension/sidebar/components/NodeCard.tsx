@@ -1,5 +1,5 @@
 import React from "react";
-import type { MemoryNode } from "memorey-core";
+import type { MemoryNode } from "../types";
 import { VaultBadge } from "./VaultBadge";
 import { StatusBadge } from "./StatusBadge";
 import { PLATFORM_ABBREV } from "../utils/colors";

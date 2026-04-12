@@ -1,5 +1,5 @@
 import React from "react";
-import type { ChangelogEntry } from "memorey-core";
+import type { ChangelogEntry } from "../types";
 import { VaultBadge } from "./VaultBadge";
 import { formatRelativeTime } from "../utils/time";
 

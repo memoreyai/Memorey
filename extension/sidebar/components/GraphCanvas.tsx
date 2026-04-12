@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MemoryNode, MemoryEdge } from "memorey-core";
+import type { MemoryNode, MemoryEdge } from "../types";
 import { GraphNode, getVaultColor } from "./GraphNode";
 import { GraphEdge } from "./GraphEdge";
 import { MiniMap } from "./MiniMap";

@@ -79,6 +79,7 @@ async function build() {
       "process.env.NODE_ENV": '"production"',
       "__SUPABASE_URL__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL || ""),
       "__SUPABASE_ANON_KEY__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""),
+      "__WEB_APP_URL__": JSON.stringify(process.env.MEMOREY_WEB_URL || "https://memorey.co"),
     },
   });
 
@@ -112,6 +113,7 @@ async function watch() {
       "process.env.NODE_ENV": '"production"',
       "__SUPABASE_URL__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL || ""),
       "__SUPABASE_ANON_KEY__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""),
+      "__WEB_APP_URL__": JSON.stringify(process.env.MEMOREY_WEB_URL || "https://memorey.co"),
     },
   });
 
