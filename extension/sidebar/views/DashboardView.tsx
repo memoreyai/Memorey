@@ -1,11 +1,39 @@
-import React from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
+import { useAuthContext } from "../hooks/useAuth";
 import { PLATFORM_ABBREV } from "../utils/colors";
 import { formatRelativeTime } from "../utils/time";
+
+declare const __WEB_APP_URL__: string | undefined;
+const WEB_APP_URL = typeof __WEB_APP_URL__ !== "undefined" ? __WEB_APP_URL__ : "https://memorey.co";
 
 export function DashboardView() {
   const { stats, recentFacts, vaults, allNodes, pendingProposals, selectedCanvasId } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
+  const { token } = useAuthContext();
+  const [conflictCount, setConflictCount] = useState(0);
+
+  const fetchConflictCount = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${WEB_APP_URL}/api/conflicts/detect`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setConflictCount(data.conflicts?.length ?? 0);
+    } catch {
+      /* ignore */
+    }
+  }, [token]);
+
+  useEffect(() => {
+    void fetchConflictCount();
+  }, [fetchConflictCount]);
 
   const filtered = selectedCanvasId === "all"
     ? allNodes
@@ -37,6 +65,12 @@ export function DashboardView() {
           <StatCard label="Total Facts" value={0} />
           <StatCard label="Active" value={0} />
           <StatCard label="Pending" value={0} />
+          <StatCard
+            label="Conflicts"
+            value={conflictCount}
+            highlight={conflictCount > 0}
+            onClick={conflictCount > 0 ? () => dispatch({ type: "SET_VIEW", view: "conflicts" }) : undefined}
+          />
         </div>
         <div className="memorey-empty">
           <div className="memorey-empty__title">No memories yet</div>
@@ -58,6 +92,12 @@ export function DashboardView() {
           value={pendingCount}
           highlight={pendingCount > 0}
           onClick={pendingCount > 0 ? () => dispatch({ type: "SET_VIEW", view: "conflicts" }) : undefined}
+        />
+        <StatCard
+          label="Conflicts"
+          value={conflictCount}
+          highlight={conflictCount > 0}
+          onClick={conflictCount > 0 ? () => dispatch({ type: "SET_VIEW", view: "conflicts" }) : undefined}
         />
       </div>
 

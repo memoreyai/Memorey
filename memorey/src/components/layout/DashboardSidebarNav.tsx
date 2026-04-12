@@ -9,6 +9,7 @@ import {
   Columns3,
   Search,
   MessageSquarePlus,
+  AlertTriangle,
   Settings,
   Eye,
   EyeOff,
@@ -192,6 +193,8 @@ export function DashboardSidebarNav({
     isMasterView && pathname === "/dashboard";
   const masterKanbanActive =
     isMasterView && pathname.startsWith("/dashboard/kanban");
+  const masterConflictsActive =
+    isMasterView && pathname.startsWith("/dashboard/conflicts");
 
   function goMasterGraph() {
     enterMasterView();
@@ -203,6 +206,11 @@ export function DashboardSidebarNav({
     enterMasterView();
     track("master_kanban_opened", {});
     router.push("/dashboard/kanban");
+  }
+
+  function goMasterConflicts() {
+    enterMasterView();
+    router.push("/dashboard/conflicts");
   }
 
   async function onEyeClick(e: React.MouseEvent, canvasId: string) {
@@ -394,6 +402,8 @@ export function DashboardSidebarNav({
                       isActiveCanvas && pathname.startsWith("/dashboard/search");
                     const captureActive =
                       isActiveCanvas && pathname.startsWith("/dashboard/capture");
+                    const conflictsActiveCollapsed =
+                      isActiveCanvas && pathname.startsWith("/dashboard/conflicts");
                     return (
                       <>
                         <Link
@@ -467,6 +477,24 @@ export function DashboardSidebarNav({
                         >
                           <MessageSquarePlus size={14} strokeWidth={1.75} />
                           Capture
+                        </Link>
+                        <Link
+                          href="/dashboard/conflicts"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            void goCanvasSubpage(c.id, "/dashboard/conflicts");
+                          }}
+                          className={subLinkClass(conflictsActiveCollapsed)}
+                          style={subLinkStyle(conflictsActiveCollapsed)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "var(--hover-bg)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <AlertTriangle size={14} strokeWidth={1.75} />
+                          Conflicts
                         </Link>
                       </>
                     );
@@ -549,6 +577,24 @@ export function DashboardSidebarNav({
               <Columns3 size={14} strokeWidth={1.75} />
               Kanban
             </Link>
+            <Link
+              href="/dashboard/conflicts"
+              onClick={(e) => {
+                e.preventDefault();
+                goMasterConflicts();
+              }}
+              className={subLinkClass(masterConflictsActive)}
+              style={subLinkStyle(masterConflictsActive)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <AlertTriangle size={14} strokeWidth={1.75} />
+              Conflicts
+            </Link>
           </div>
         </SidebarDropdown>
       </div>
@@ -572,6 +618,8 @@ export function DashboardSidebarNav({
             isActiveCanvas && pathname.startsWith("/dashboard/search");
           const captureActive =
             isActiveCanvas && pathname.startsWith("/dashboard/capture");
+          const conflictsActive =
+            isActiveCanvas && pathname.startsWith("/dashboard/conflicts");
 
           return (
             <div
@@ -756,6 +804,24 @@ export function DashboardSidebarNav({
                   >
                     <MessageSquarePlus size={14} strokeWidth={1.75} />
                     Capture
+                  </Link>
+                  <Link
+                    href="/dashboard/conflicts"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void goCanvasSubpage(c.id, "/dashboard/conflicts");
+                    }}
+                    className={subLinkClass(conflictsActive)}
+                    style={subLinkStyle(conflictsActive)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <AlertTriangle size={14} strokeWidth={1.75} />
+                    Conflicts
                   </Link>
                 </div>
               </SidebarDropdown>
