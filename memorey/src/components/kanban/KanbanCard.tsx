@@ -44,10 +44,12 @@ export function KanbanCard({
   node,
   linkedCount,
   onRemoveFromBoard,
+  onOpenDetail,
 }: {
   node: KanbanCardNode;
   linkedCount: number;
   onRemoveFromBoard: (nodeId: string) => void;
+  onOpenDetail?: (nodeId: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: kanbanCardDragId(node.id) });
@@ -140,7 +142,10 @@ export function KanbanCard({
           color: "var(--text)",
           margin: "6px 0 4px",
           lineHeight: 1.4,
+          cursor: onOpenDetail ? "pointer" : undefined,
         }}
+        onPointerDown={(e) => { if (onOpenDetail) e.stopPropagation(); }}
+        onClick={() => onOpenDetail?.(node.id)}
       >
         {node.title}
       </div>

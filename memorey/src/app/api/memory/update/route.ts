@@ -73,9 +73,9 @@ export async function PUT(req: NextRequest) {
   const { error: histErr } = await supabase.from("node_history").insert({
     node_id: nodeId,
     user_id: user.id,
-    old_title: (updates.title as string) ?? existing.title,
+    old_title: existing.title,
     new_title: (updates.title as string) ?? existing.title,
-    old_value: (updates.value as string) ?? existing.value,
+    old_value: existing.value,
     new_value: (updates.value as string) ?? existing.value,
     change_summary: changes.join("; "),
     triggered_by: "user",

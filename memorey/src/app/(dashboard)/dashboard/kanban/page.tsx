@@ -40,6 +40,7 @@ import {
   type KanbanNodeRowSnake,
 } from "@/components/kanban/KanbanAddCardColumnFooter";
 import { KanbanColumnSettingsModal } from "@/components/kanban/KanbanColumnSettingsModal";
+import { NodeDetailSheet } from "@/components/graph/ui/NodeDetailSheet";
 import { useGraphStore } from "@/store/graphStore";
 import { toast } from "sonner";
 import {
@@ -847,6 +848,7 @@ export default function KanbanPage() {
           node={c}
           linkedCount={linkedCount(c.id)}
           onRemoveFromBoard={removeFromBoard}
+          onOpenDetail={(id) => useGraphStore.getState().selectNode(id)}
         />
       ))}
     </div>
@@ -1453,6 +1455,14 @@ export default function KanbanPage() {
           </div>
         </div>
       ) : null}
+
+      {userId && (
+        <NodeDetailSheet
+          userId={userId}
+          historyOpenForNode={null}
+          clearHistoryOpenForNode={() => {}}
+        />
+      )}
     </div>
   );
 }

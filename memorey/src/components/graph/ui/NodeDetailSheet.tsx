@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useGraphStore } from "@/store/graphStore";
 import { useVaultStore } from "@/store/vaultStore";
+import { useKanbanStore } from "@/store/kanbanStore";
+import { useCanvasStore } from "@/store/canvasStore";
 import {
   X,
   Palette,
@@ -297,11 +299,17 @@ function AttachmentCard({
   );
 }
 
+interface HistoryChange {
+  field: string;
+  before: string;
+  after: string;
+}
+
 interface HistoryEntry {
   id: string;
   type: "content" | "title" | "confidence" | "vault" | "merged" | "deactivated" | "restored" | "edit";
   label: string;
-  details: string | null;
+  changes: HistoryChange[];
   created_at: string;
 }
 
@@ -386,40 +394,45 @@ function mapHistoryRows(rows: Record<string, unknown>[]): HistoryEntry[] {
         id,
         type: "confidence",
         label: "Confidence changed",
-        details: match ? `From ${match[1]} to ${match[2]}` : summary,
+        changes: match ? [{ field: "Confidence", before: match[1], after: match[2] }] : [],
         created_at,
       });
     } else if (summary?.includes("Vault changed")) {
-      const parts = summary.replace("Vault changed: ", "");
+      const match = summary.match(/Vault changed:\s*(.+?)\s*→\s*(.+)/);
       out.push({
         id,
         type: "vault",
         label: "Vault changed",
-        details: parts ? `From ${parts.replace(" → ", " to ")}` : null,
+        changes: match ? [{ field: "Vault", before: match[1].trim(), after: match[2].trim() }] : [],
         created_at,
       });
     } else if (summary?.includes("restored")) {
-      out.push({ id, type: "restored", label: "Restored to previous version", details: null, created_at });
+      out.push({ id, type: "restored", label: "Restored to previous version", changes: [], created_at });
     } else if (summary?.toLowerCase().includes("merge") || summary?.toLowerCase().includes("conflict")) {
-      out.push({ id, type: "merged", label: "Merged from conflict resolution", details: summary, created_at });
+      out.push({ id, type: "merged", label: "Merged from conflict resolution", changes: [], created_at });
     } else if (summary?.toLowerCase().includes("deactivat")) {
-      out.push({ id, type: "deactivated", label: "Deactivated", details: summary, created_at });
+      out.push({ id, type: "deactivated", label: "Deactivated", changes: [], created_at });
     } else {
       const titleChanged = oldTitle !== null && oldTitle !== newTitle;
       const valueChanged = oldVal !== null && oldVal !== newVal;
+      const changes: HistoryChange[] = [];
 
-      if (titleChanged && valueChanged) {
-        out.push({ id, type: "content", label: "Title and content updated", details: null, created_at });
-      } else if (titleChanged) {
-        const detail =
-          oldTitle && newTitle
-            ? `"${oldTitle.slice(0, 50)}" → "${newTitle.slice(0, 50)}"`
-            : null;
-        out.push({ id, type: "title", label: "Title changed", details: detail, created_at });
-      } else if (valueChanged) {
-        out.push({ id, type: "content", label: "Content updated", details: null, created_at });
+      if (titleChanged) {
+        changes.push({ field: "Title", before: oldTitle!, after: newTitle });
+      }
+      if (valueChanged) {
+        changes.push({ field: "Description", before: oldVal!, after: newVal });
+      }
+
+      if (changes.length > 0) {
+        const label = titleChanged && valueChanged
+          ? "Updated"
+          : titleChanged
+            ? "Title changed"
+            : "Content updated";
+        out.push({ id, type: titleChanged ? "title" : "content", label, changes, created_at });
       } else if (summary) {
-        out.push({ id, type: "edit", label: summary, details: null, created_at });
+        out.push({ id, type: "edit", label: summary, changes: [], created_at });
       }
     }
   }
@@ -1122,6 +1135,153 @@ function FileNodeDetailSheet({
   );
 }
 
+function KanbanSection({
+  nodeId,
+  userId,
+  canvasId,
+  currentColumnId,
+  currentStatus,
+  accentColor,
+}: {
+  nodeId: string;
+  userId: string;
+  canvasId?: string | null;
+  currentColumnId?: string | null;
+  currentStatus: string | null;
+  accentColor: string;
+}) {
+  const columns = useKanbanStore((s) => s.columns);
+  const loadColumns = useKanbanStore((s) => s.loadColumns);
+  const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
+  const effectiveCanvasId = canvasId ?? activeCanvasId;
+
+  useEffect(() => {
+    if (effectiveCanvasId) void loadColumns(effectiveCanvasId);
+  }, [effectiveCanvasId, loadColumns]);
+
+  const currentCol = columns.find((c) => c.id === currentColumnId);
+
+  const assignColumn = async (columnId: string | null) => {
+    const supabase = createClient();
+    await supabase
+      .from("memory_nodes")
+      .update({
+        kanban_column_id: columnId,
+        kanban_status: columnId ? (currentStatus ?? "todo") : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", nodeId)
+      .eq("user_id", userId);
+
+    useGraphStore.getState().updateNode(nodeId, {
+      kanbanColumnId: columnId ?? undefined,
+      kanbanStatus: columnId ? (currentStatus as "todo" | "doing" | "done" | null) ?? "todo" : null,
+    });
+  };
+
+  return (
+    <div
+      style={{
+        padding: "10px 20px",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      <SectionLabel
+        icon={<span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>K</span>}
+        text="Kanban"
+      />
+
+      {columns.length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <select
+              value={currentColumnId ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                void assignColumn(val || null);
+              }}
+              style={{
+                flex: 1,
+                background: "var(--bg2)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-md)",
+                padding: "5px 8px",
+                fontSize: 12,
+                color: "var(--text)",
+                cursor: "pointer",
+                outline: "none",
+              }}
+            >
+              <option value="">Not on board</option>
+              {columns.map((col) => (
+                <option key={col.id} value={col.id}>
+                  {col.name}
+                </option>
+              ))}
+            </select>
+            {currentColumnId && (
+              <button
+                type="button"
+                onClick={() => void assignColumn(null)}
+                style={{
+                  background: "none",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-md)",
+                  padding: "4px 8px",
+                  fontSize: 11,
+                  color: "var(--muted)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Remove
+              </button>
+            )}
+          </div>
+
+          {currentColumnId && (
+            <div style={{ display: "flex", gap: 5 }}>
+              {(["todo", "doing", "done"] as const).map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={async () => {
+                    const supabase = createClient();
+                    await supabase
+                      .from("memory_nodes")
+                      .update({ kanban_status: status })
+                      .eq("id", nodeId)
+                      .eq("user_id", userId);
+                    useGraphStore
+                      .getState()
+                      .updateNode(nodeId, { kanbanStatus: status });
+                  }}
+                  style={{
+                    padding: "3px 9px",
+                    borderRadius: 100,
+                    fontSize: 11,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    background: currentStatus === status ? accentColor + "22" : "var(--bg2)",
+                    border: `1px solid ${currentStatus === status ? accentColor + "66" : "var(--border)"}`,
+                    color: currentStatus === status ? accentColor : "var(--text2)",
+                  }}
+                >
+                  {status === "todo" ? "To-do" : status === "doing" ? "Doing" : "Done"}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ fontSize: 11, color: "var(--muted)" }}>
+          No kanban columns configured
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MemoryNodeDetailSheet({
   userId,
   historyOpenForNode,
@@ -1262,20 +1422,25 @@ function MemoryNodeDetailSheet({
           return;
         }
 
-        await supabase.from("node_history").insert({
-          node_id: selectedNodeId,
-          user_id: userId,
-          old_title: oldTitle,
-          new_title: newTitle,
-          old_value: oldValue,
-          new_value: newValue,
-          change_summary: `${field} edited`,
-          triggered_by: "user",
-        });
-
-        track("node_edited", { field });
         useGraphStore.getState().updateNode(selectedNodeId, { [field]: val });
-        setHistoryKey((k) => k + 1);
+        track("node_edited", { field });
+
+        void Promise.resolve(
+          supabase
+            .from("node_history")
+            .insert({
+              node_id: selectedNodeId,
+              user_id: userId,
+              old_title: oldTitle,
+              new_title: newTitle,
+              old_value: oldValue,
+              new_value: newValue,
+              change_summary: `${field} edited`,
+              triggered_by: "user",
+            })
+        )
+          .then(() => setHistoryKey((k) => k + 1))
+          .catch(console.error);
       } finally {
         setIsSaving(false);
       }
@@ -1295,19 +1460,26 @@ function MemoryNodeDetailSheet({
         .update({ confidence: clamped, updated_at: new Date().toISOString() })
         .eq("id", selectedNodeId)
         .eq("user_id", userId);
-      await supabase.from("node_history").insert({
-        node_id: selectedNodeId,
-        user_id: userId,
-        old_title: node.title ?? "",
-        new_title: node.title ?? "",
-        old_value: node.value ?? "",
-        new_value: node.value ?? "",
-        change_summary: `Confidence: ${old.toFixed(2)} → ${clamped.toFixed(2)}`,
-        triggered_by: "user",
-      });
+
       useGraphStore.getState().updateNode(selectedNodeId, { confidence: clamped });
       track("node_edited", { field: "confidence" });
-      setHistoryKey((k) => k + 1);
+
+      void Promise.resolve(
+        supabase
+          .from("node_history")
+          .insert({
+            node_id: selectedNodeId,
+            user_id: userId,
+            old_title: node.title ?? "",
+            new_title: node.title ?? "",
+            old_value: node.value ?? "",
+            new_value: node.value ?? "",
+            change_summary: `Confidence: ${old.toFixed(2)} → ${clamped.toFixed(2)}`,
+            triggered_by: "user",
+          })
+      )
+        .then(() => setHistoryKey((k) => k + 1))
+        .catch(console.error);
     },
     [selectedNodeId, userId, node, track]
   );
@@ -1337,23 +1509,30 @@ function MemoryNodeDetailSheet({
           .update({ vault_id: newVaultId, updated_at: new Date().toISOString() })
           .eq("id", selectedNodeId)
           .eq("user_id", userId);
-        await supabase.from("node_history").insert({
-          node_id: selectedNodeId,
-          user_id: userId,
-          old_title: node.title ?? "",
-          new_title: node.title ?? "",
-          old_value: node.value ?? "",
-          new_value: node.value ?? "",
-          change_summary: `Vault changed: ${oldVault?.name ?? "Unknown"} → ${newVault?.name ?? "Unknown"}`,
-          triggered_by: "user",
-        });
+
         useGraphStore.getState().updateNode(selectedNodeId, {
           vaultId: newVaultId,
           vaultName: newVault?.name ?? "Unknown",
         });
         track("node_edited", { field: "vault" });
-        setHistoryKey((k) => k + 1);
         toast.success(`Moved to ${newVault?.name ?? "vault"}`);
+
+        void Promise.resolve(
+          supabase
+            .from("node_history")
+            .insert({
+              node_id: selectedNodeId,
+              user_id: userId,
+              old_title: node.title ?? "",
+              new_title: node.title ?? "",
+              old_value: node.value ?? "",
+              new_value: node.value ?? "",
+              change_summary: `Vault changed: ${oldVault?.name ?? "Unknown"} → ${newVault?.name ?? "Unknown"}`,
+              triggered_by: "user",
+            })
+        )
+          .then(() => setHistoryKey((k) => k + 1))
+          .catch(console.error);
       } finally {
         setIsSaving(false);
       }
@@ -2127,65 +2306,14 @@ function MemoryNodeDetailSheet({
           )}
 
           {/* ── Kanban ── */}
-          {node.kanbanStatus && (
-            <div
-              style={{
-                padding: "10px 20px",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <SectionLabel
-                icon={<span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>K</span>}
-                text="Kanban"
-              />
-              <div style={{ display: "flex", gap: 5 }}>
-                {(["todo", "doing", "done"] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={async () => {
-                      if (!selectedNodeId || !userId) return;
-                      const supabase = createClient();
-                      await supabase
-                        .from("memory_nodes")
-                        .update({ kanban_status: status })
-                        .eq("id", selectedNodeId)
-                        .eq("user_id", userId);
-                      useGraphStore
-                        .getState()
-                        .updateNode(selectedNodeId, { kanbanStatus: status });
-                    }}
-                    style={{
-                      padding: "3px 9px",
-                      borderRadius: 100,
-                      fontSize: 11,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      background:
-                        node.kanbanStatus === status
-                          ? accentColor + "22"
-                          : "var(--bg2)",
-                      border: `1px solid ${
-                        node.kanbanStatus === status
-                          ? accentColor + "66"
-                          : "var(--border)"
-                      }`,
-                      color:
-                        node.kanbanStatus === status
-                          ? accentColor
-                          : "var(--text2)",
-                    }}
-                  >
-                    {status === "todo"
-                      ? "To-do"
-                      : status === "doing"
-                        ? "Doing"
-                        : "Done"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <KanbanSection
+            nodeId={selectedNodeId!}
+            userId={userId!}
+            canvasId={node.canvasId}
+            currentColumnId={node.kanbanColumnId}
+            currentStatus={node.kanbanStatus ?? null}
+            accentColor={accentColor}
+          />
 
           {/* ── Attachments ── */}
           <div
@@ -2507,20 +2635,39 @@ function MemoryNodeDetailSheet({
                     style={{
                       fontSize: 11,
                       color: "var(--muted)",
-                      marginBottom: entry.details ? 6 : 0,
+                      marginBottom: entry.changes.length > 0 ? 8 : 0,
                     }}
                   >
                     {formatHistoryDate(entry.created_at)}
                   </div>
-                  {entry.details && (
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--text2)",
-                        lineHeight: 1.5,
-                      }}
-                    >
-                      {entry.details}
+                  {entry.changes.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {entry.changes.map((ch, ci) => (
+                        <div key={ci}>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: "var(--text2)",
+                              marginBottom: 2,
+                            }}
+                          >
+                            {ch.field}
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                            <span>Before: </span>
+                            <span style={{ color: "var(--text2)" }}>
+                              {ch.before.length > 120 ? ch.before.slice(0, 120) + "..." : ch.before}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>
+                            <span>After: </span>
+                            <span style={{ color: "var(--text2)" }}>
+                              {ch.after.length > 120 ? ch.after.slice(0, 120) + "..." : ch.after}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -2573,8 +2720,14 @@ function MemoryNodeDetailSheet({
                     ? formatHistoryDate(node.createdAt)
                     : "Unknown"}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--text2)" }}>
+                <div style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.6 }}>
                   Source: {sourceLabel(node.source)}
+                  {node.title && (
+                    <>
+                      <br />
+                      Initial title: {node.title}
+                    </>
+                  )}
                 </div>
               </div>
             </div>

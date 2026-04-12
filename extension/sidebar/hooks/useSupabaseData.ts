@@ -19,6 +19,7 @@ export interface SupabaseData {
   recentFacts: MemoryNode[];
   loading: boolean;
   error: string | null;
+  lastRefreshed: Date | null;
   refresh: () => Promise<void>;
 }
 
@@ -33,11 +34,10 @@ export function useSupabaseData(
   const [pendingProposals, setPendingProposals] = useState<PendingProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
 
   const supabaseRef = useRef(supabase);
   supabaseRef.current = supabase;
-
-  const fetchedRef = useRef(false);
 
   const refresh = useCallback(async () => {
     const client = supabaseRef.current;
@@ -159,6 +159,7 @@ export function useSupabaseData(
       setCanvases(parsedCanvases);
       setPendingProposals(parsedProposals);
       setError(null);
+      setLastRefreshed(new Date());
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -174,9 +175,11 @@ export function useSupabaseData(
 
   useEffect(() => {
     if (!userId || !supabaseRef.current) return;
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
     void refresh();
+    const interval = setInterval(() => {
+      void refresh();
+    }, 30_000);
+    return () => clearInterval(interval);
   }, [userId, refresh]);
 
   const stats: Stats = useMemo(() => {
@@ -205,6 +208,7 @@ export function useSupabaseData(
     recentFacts,
     loading,
     error,
+    lastRefreshed,
     refresh,
   };
 }
