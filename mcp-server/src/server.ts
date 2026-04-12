@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { createHash } from "crypto";
 import { createClient, type User } from "@supabase/supabase-js";
 import OpenAI from "openai";
@@ -128,7 +128,7 @@ const tokenRateLimiter = rateLimit({
       const t = auth.slice(7).trim();
       return createHash("sha256").update(t).digest("hex");
     }
-    return req.ip || "unknown";
+    return ipKeyGenerator(req.ip || req.socket.remoteAddress || "127.0.0.1");
   },
 });
 
