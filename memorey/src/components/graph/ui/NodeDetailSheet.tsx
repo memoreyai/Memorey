@@ -76,13 +76,8 @@ interface Attachment {
   og_site_name?: string | null;
 }
 
-function linkKindIcon(url: string): string {
-  const u = url.toLowerCase();
-  if (u.includes("youtube.com") || u.includes("youtu.be")) return "▶️";
-  if (u.includes("figma.com")) return "🎨";
-  if (u.includes("github.com")) return "⚙️";
-  if (u.includes("notion.so")) return "📝";
-  return "🔗";
+function linkKindIcon(_url: string): string {
+  return "";
 }
 
 function AttachmentCard({
@@ -119,14 +114,14 @@ function AttachmentCard({
 
   const typeIcon =
     att.file_type === "pdf"
-      ? "📄"
+      ? "PDF"
       : att.file_type === "image"
-        ? "🖼️"
+        ? "IMG"
         : att.file_type === "video"
-          ? "▶️"
+          ? "VID"
           : att.file_type === "link"
-            ? linkKindIcon(att.file_url)
-            : "🔗";
+            ? "URL"
+            : "FILE";
 
   const showImagePreview = att.file_type === "image" && !imgError;
 
@@ -351,24 +346,20 @@ function formatHistoryDate(iso: string): string {
   );
 }
 
-function historyTypeEmoji(type: string): string {
+function historyTypeColor(type: string): string {
   switch (type) {
-    case "content":
-    case "title":
-    case "edit":
-      return "📝";
     case "confidence":
-      return "📊";
+      return "#F59E0B";
     case "vault":
-      return "📂";
+      return "#4FC1E9";
     case "merged":
-      return "🔀";
+      return "#C792EA";
     case "deactivated":
-      return "🗑️";
+      return "#E05C5C";
     case "restored":
-      return "↩️";
+      return "#5DCAA5";
     default:
-      return "📝";
+      return "var(--orange)";
   }
 }
 
@@ -770,12 +761,24 @@ function FileNodeDetailSheet({
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: 18, flexShrink: 0 }}>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 700,
+            flexShrink: 0,
+            color: "var(--text2)",
+            background: "var(--bg2)",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            padding: "2px 6px",
+            textTransform: "uppercase",
+          }}
+        >
           {node.fileType === "image"
-            ? "🖼️"
+            ? "IMG"
             : node.fileType === "pdf"
-              ? "📄"
-              : "🔗"}
+              ? "PDF"
+              : "URL"}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
@@ -878,7 +881,7 @@ function FileNodeDetailSheet({
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: 40, marginBottom: 8 }}>📎</div>
+          <Paperclip size={32} style={{ color: "var(--muted)", marginBottom: 8 }} />
           <div
             style={{
               fontSize: 12,
@@ -1392,6 +1395,17 @@ function MemoryNodeDetailSheet({
     }
   }, [node, selectedNodeId, userId, editTitle, editValue, editVaultId, saveField, saveVaultChange]);
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s" && isEditing) {
+        e.preventDefault();
+        void saveEdits();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isEditing, saveEdits]);
+
   const saveColor = useCallback(
     async (
       field: "custom_accent_color" | "custom_bg_color" | "custom_text_color",
@@ -1622,7 +1636,7 @@ function MemoryNodeDetailSheet({
                 marginBottom: 6,
               }}
             >
-              {node.canvasEmoji ?? "🧠"} {node.canvasName}
+              {node.canvasEmoji ? `${node.canvasEmoji} ` : ""}{node.canvasName}
             </div>
           )}
           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -2121,7 +2135,7 @@ function MemoryNodeDetailSheet({
               }}
             >
               <SectionLabel
-                icon={<span style={{ fontSize: 11 }}>📋</span>}
+                icon={<span style={{ fontSize: 10, fontWeight: 700, color: "var(--muted)" }}>K</span>}
                 text="Kanban"
               />
               <div style={{ display: "flex", gap: 5 }}>
@@ -2163,10 +2177,10 @@ function MemoryNodeDetailSheet({
                     }}
                   >
                     {status === "todo"
-                      ? "📋 To-do"
+                      ? "To-do"
                       : status === "doing"
-                        ? "⚡ Doing"
-                        : "✅ Done"}
+                        ? "Doing"
+                        : "Done"}
                   </button>
                 ))}
               </div>
@@ -2470,9 +2484,15 @@ function MemoryNodeDetailSheet({
                       marginBottom: 4,
                     }}
                   >
-                    <span style={{ fontSize: 13, flexShrink: 0 }}>
-                      {historyTypeEmoji(entry.type)}
-                    </span>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: historyTypeColor(entry.type),
+                        flexShrink: 0,
+                      }}
+                    />
                     <span
                       style={{
                         fontSize: 12,
@@ -2523,7 +2543,15 @@ function MemoryNodeDetailSheet({
                     marginBottom: 4,
                   }}
                 >
-                  <span style={{ fontSize: 13 }}>✨</span>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "#5DCAA5",
+                      flexShrink: 0,
+                    }}
+                  />
                   <span
                     style={{
                       fontSize: 12,

@@ -40,6 +40,12 @@ const SHORTCUTS = [
     ],
   },
   {
+    group: "Editing",
+    items: [
+      { keys: ["⌘", "S"], label: "Save changes (when editing a node)" },
+    ],
+  },
+  {
     group: "General",
     items: [
       {

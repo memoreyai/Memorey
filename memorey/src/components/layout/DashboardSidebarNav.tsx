@@ -304,7 +304,7 @@ export function DashboardSidebarNav({
           }}
           aria-label="Master View"
         >
-          🌐
+          <LayoutGrid size={16} strokeWidth={1.75} />
           <span className="sidebar-tooltip">Master View</span>
         </button>
         {canvases.map((c) => (
@@ -554,9 +554,7 @@ export function DashboardSidebarNav({
           className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
           style={{ color: "var(--text)" }}
         >
-          <span className="text-[15px] leading-none" aria-hidden>
-            🌐
-          </span>
+          <LayoutGrid size={15} strokeWidth={1.75} className="shrink-0" style={{ color: "var(--text2)" }} />
           <span className="min-w-0 flex-1">Master View</span>
           {masterOpen ? (
             <ChevronDown className="size-4 shrink-0" style={{ color: "var(--muted)" }} />

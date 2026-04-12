@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,16 +23,7 @@ const VAULT_COLORS = [
   "#E05C5C", "#5DCAA5", "#F0A500", "#7C6FF0",
 ];
 
-const VAULT_ICONS: Record<string, string> = {
-  Work: "💼",
-  Goals: "🎯",
-  Personal: "🏠",
-  Health: "💪",
-  Finance: "💰",
-  Study: "📚",
-  Relationships: "👥",
-  Preferences: "⚙️",
-};
+const VAULT_ICONS: Record<string, string> = {};
 
 const TIPS = [
   {
@@ -130,9 +121,12 @@ export default function OnboardingPage() {
     track("onboarding_started", {});
   }, [loading, userId, track]);
 
+  const vaultsFetchedRef = useRef(false);
+
   // Seed and load vaults when reaching step 2
   useEffect(() => {
     if (step !== 2 || !userId) return;
+    if (vaultsFetchedRef.current) return;
     let cancelled = false;
     const supabase = createClient();
     void (async () => {
@@ -151,6 +145,7 @@ export default function OnboardingPage() {
         .eq("is_active", true)
         .order("display_order", { ascending: true });
       if (cancelled) return;
+      vaultsFetchedRef.current = true;
       const mapped = (vaults ?? []).map((v) => ({
         id: v.id as string,
         name: v.name as string,
@@ -217,6 +212,18 @@ export default function OnboardingPage() {
 
     if (existingCanvases && existingCanvases.length > 0) {
       const cid = (existingCanvases[0] as { id: string }).id;
+
+      const selectedIds = Array.from(selectedVaultIds);
+      if (selectedIds.length > 0) {
+        await supabase.from("canvas_vaults").upsert(
+          selectedIds.map((vaultId) => ({
+            canvas_id: cid,
+            vault_id: vaultId,
+            user_id: userId,
+          }))
+        );
+      }
+
       await setActiveCanvas(cid, userId);
       return cid;
     }
@@ -259,6 +266,18 @@ export default function OnboardingPage() {
     });
 
     await supabase.rpc("seed_canvas_vaults", { p_user_id: userId, p_canvas_id: canvasId });
+
+    const selectedIds = Array.from(selectedVaultIds);
+    if (selectedIds.length > 0) {
+      await supabase.from("canvas_vaults").upsert(
+        selectedIds.map((vaultId) => ({
+          canvas_id: canvasId,
+          vault_id: vaultId,
+          user_id: userId,
+        }))
+      );
+    }
+
     await supabase.from("profiles").update({ active_canvas_id: canvasId }).eq("id", userId);
     await setActiveCanvas(canvasId, userId);
     return canvasId;
@@ -574,9 +593,15 @@ export default function OnboardingPage() {
                         transition: "all 0.15s",
                       }}
                     >
-                      <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>
-                        {VAULT_ICONS[vault.name] ?? "📁"}
-                      </span>
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 4,
+                          background: vault.color,
+                          flexShrink: 0,
+                        }}
+                      />
                       <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: isSelected ? "var(--text)" : "var(--text2)" }}>
                         {vault.name}
                       </span>

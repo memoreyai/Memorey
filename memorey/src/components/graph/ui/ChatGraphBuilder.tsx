@@ -243,7 +243,7 @@ function GraphPreviewCanvas({
           if (isKanban) {
             ctx.font = "8px serif";
             ctx.textBaseline = "middle";
-            ctx.fillText("📋", nx + 6, ny + NH / 2);
+            ctx.fillText("", nx + 6, ny + NH / 2);
             ctx.textBaseline = "alphabetic";
           }
 
@@ -1018,7 +1018,7 @@ export function ChatGraphBuilder({
                               }}
                             >
                               {n.type === "kanban" && (
-                                <span style={{ fontSize: 9 }}>📋</span>
+                                <span style={{ fontSize: 9 }}></span>
                               )}
                               {n.isNewVault && <Plus size={8} />}
                               {n.vaultName}: {n.title.slice(0, 25)}
@@ -1083,7 +1083,7 @@ export function ChatGraphBuilder({
                           marginBottom: 4,
                         }}
                       >
-                        ✨ New vaults to create
+                        New vaults to create
                       </div>
                       {pendingVaults.map((n) => (
                         <div
@@ -1210,7 +1210,7 @@ export function ChatGraphBuilder({
                                   color: "#F5C542",
                                 }}
                               >
-                                📋{" "}
+                                
                                 {node.kanbanStatus?.toUpperCase() ?? "TO-DO"}
                               </span>
                             )}

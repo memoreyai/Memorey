@@ -688,22 +688,22 @@ export function MemoreyLanding() {
             </thead>
             <tbody>
               {[
-                ["Built for humans (not developers)", "✗", "✗", "✗", "✓"],
-                ["Works across all AI platforms", "API only", "API only", "✗ Siloed", "✓"],
-                ["You control every update", "✗", "✗", "✗", "✓"],
-                ["Visual graph of your memory", "✗", "✗", "✗", "✓"],
-                ["Vault isolation (Work ≠ Health)", "✗", "✗", "✗", "✓"],
-                ["Free tier with browser extension", "✗", "✗", "N/A", "✓"],
-                ["Links deleted after parsing", "✗", "✗", "N/A", "✓"],
+                ["Built for humans (not developers)", "No", "No", "No", "Yes"],
+                ["Works across all AI platforms", "API only", "API only", "No — Siloed", "Yes"],
+                ["You control every update", "No", "No", "No", "Yes"],
+                ["Visual graph of your memory", "No", "No", "No", "Yes"],
+                ["Vault isolation (Work ≠ Health)", "No", "No", "No", "Yes"],
+                ["Free tier with browser extension", "No", "No", "N/A", "Yes"],
+                ["Links deleted after parsing", "No", "No", "N/A", "Yes"],
               ].map(([feat, m0, sm, plat, mem]) => (
                 <tr key={feat as string} style={{ borderBottom: `1px solid ${border}` }}>
                   <td className="py-4 pr-4" style={{ color: ink }}>
                     {feat}
                   </td>
-                  <td className="py-4 px-2" style={{ color: m0 === "API only" ? amberApi : hostile, opacity: m0 === "✗" ? 0.55 : 1 }}>
+                  <td className="py-4 px-2" style={{ color: m0 === "API only" ? amberApi : hostile, opacity: m0 === "No" ? 0.55 : 1 }}>
                     {m0}
                   </td>
-                  <td className="py-4 px-2" style={{ color: sm === "API only" ? amberApi : hostile, opacity: sm === "✗" ? 0.55 : 1 }}>
+                  <td className="py-4 px-2" style={{ color: sm === "API only" ? amberApi : hostile, opacity: sm === "No" ? 0.55 : 1 }}>
                     {sm}
                   </td>
                   <td className="py-4 px-2" style={{ color: plat.includes("API") ? amberApi : hostile, opacity: 0.75 }}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Check, Lock } from "lucide-react";
 import { MemoreyLogo } from "@/components/memorey/MemoreyLogo";
 import HeroGraph from "@/components/landing/HeroGraph";
 
@@ -135,7 +136,7 @@ function Cell({ v }: { v: boolean | string }) {
     );
   }
   return v ? (
-    <span style={{ color: "var(--accent)", fontSize: 16 }}>✓</span>
+    <Check size={16} style={{ color: "var(--accent)", display: "inline" }} />
   ) : (
     <span style={{ color: "var(--text-muted)", fontSize: 14 }}>—</span>
   );
@@ -656,10 +657,10 @@ export function LandingHomeClient() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 18,
-                  }}
-                >
-                  🔒
+                  fontSize: 18,
+                }}
+              >
+                  <Lock size={18} style={{ color: "inherit" }} />
                 </div>
                 <span
                   style={{
@@ -692,7 +693,7 @@ export function LandingHomeClient() {
                     flexShrink: 0,
                   }}
                 >
-                  — ✕ —
+                  ———
                 </div>
               )}
             </div>
@@ -874,7 +875,7 @@ export function LandingHomeClient() {
                 fontFamily: "ui-monospace, monospace",
               }}
             >
-              ✓ Link deleted at 14:32:07
+              Link deleted at 14:32:07
             </span>
           </div>
           <div
@@ -1400,15 +1401,15 @@ export function LandingHomeClient() {
                       position: "relative",
                     }}
                   >
-                    <span
+                    <Check
+                      size={14}
                       style={{
                         position: "absolute",
                         left: 0,
+                        top: 2,
                         color: "var(--accent)",
                       }}
-                    >
-                      ✓
-                    </span>
+                    />
                     {f}
                   </li>
                 ))}

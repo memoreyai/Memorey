@@ -95,7 +95,7 @@ export function SearchBar({
         style={{ color: "var(--muted)" }}
         onClick={onClear}
       >
-        ✕
+        ×
       </button>
     </div>
   );

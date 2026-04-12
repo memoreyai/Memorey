@@ -295,7 +295,7 @@ function CanvasLabel({
         style={{ fontSize: 9, color: "var(--faint)", flexShrink: 0 }}
         aria-hidden
       >
-        ✎
+        Edit
       </span>
     </div>
   );
@@ -586,9 +586,9 @@ export function Toolbar({
         >
           {(
             [
-              { id: "graph" as const, label: "Graph", icon: "⬡" },
-              { id: "plain" as const, label: "Plain", icon: "☰" },
-              { id: "tree" as const, label: "Tree", icon: "🌳" },
+              { id: "graph" as const, label: "Graph" },
+              { id: "plain" as const, label: "List" },
+              { id: "tree" as const, label: "Tree" },
             ] as const
           ).map((opt) => (
             <button
@@ -614,7 +614,6 @@ export function Toolbar({
                 whiteSpace: "nowrap",
               }}
             >
-              <span style={{ fontSize: 9 }}>{opt.icon}</span>
               {opt.label}
             </button>
           ))}
@@ -637,7 +636,7 @@ export function Toolbar({
             className="truncate text-[13px] font-semibold"
             style={{ color: "var(--text)", maxWidth: 200 }}
           >
-            🌐 Master View
+            Master View
           </span>
         ) : activeCanvas ? (
           <CanvasLabel canvas={activeCanvas} onRename={onRenameCanvas} />

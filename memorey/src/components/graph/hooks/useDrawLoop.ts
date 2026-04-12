@@ -449,7 +449,7 @@ export function useDrawLoop(opts: {
           }
           if (vaultDim && node.nodeKind === "memory") {
             ctx.font = "14px system-ui";
-            ctx.fillText("🔒", pos.x - 8, pos.y - FILE_NODE_H / 2 - 4);
+            ctx.fillText("●", pos.x - 8, pos.y - FILE_NODE_H / 2 - 4);
           }
         } else if (node.nodeType === "sticky") {
           if (dim) ctx.globalAlpha = 0.32;
@@ -506,7 +506,7 @@ export function useDrawLoop(opts: {
           }
           if (vaultDim && node.nodeKind === "memory") {
             ctx.font = "14px system-ui";
-            ctx.fillText("🔒", pos.x - 8, pos.y - NODE_H / 2 - 4);
+            ctx.fillText("●", pos.x - 8, pos.y - NODE_H / 2 - 4);
           }
         }
       }

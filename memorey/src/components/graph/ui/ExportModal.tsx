@@ -28,22 +28,22 @@ function timelineNodeTitle(n: MemoryNode): string {
   if (n.nodeKindV2 === "file" || n.fileUrl) {
     switch (n.fileType) {
       case "image":
-        prefix = "🖼️ ";
+        prefix = "";
         break;
       case "pdf":
-        prefix = "📄 ";
+        prefix = "";
         break;
       case "video":
-        prefix = "🎬 ";
+        prefix = "";
         break;
       case "doc":
-        prefix = "📝 ";
+        prefix = "";
         break;
       case "link":
-        prefix = "🔗 ";
+        prefix = "";
         break;
       default:
-        prefix = "📁 ";
+        prefix = "";
     }
   }
   return `${prefix}${n.title}`;

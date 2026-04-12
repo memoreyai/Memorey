@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { RefObject } from "react";
 import type { DragEvent } from "react";
 import type { MemoryNode, CategoryVault, GraphNode } from "@/types/memorey";
+import { X } from "lucide-react";
 import { ExportModal } from "./ExportModal";
 import type { CanvasDims, EdgeStyle, SearchMode } from "../types/canvas.types";
 import type {
@@ -33,6 +35,85 @@ import { useCanvasStore } from "@/store/canvasStore";
 import { NodePeekAnchored } from "./NodePeekAnchored";
 import type { Transform } from "../types/canvas.types";
 import type { MutableRefObject } from "react";
+
+function CanvasTip() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const key = "memorey-canvas-tip-dismissed";
+    if (localStorage.getItem(key)) return;
+    setVisible(true);
+    const timer = setTimeout(() => {
+      setVisible(false);
+      localStorage.setItem(key, "1");
+    }, 10_000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        bottom: 52,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 30,
+        background: "var(--bg3)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "10px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        boxShadow: "var(--shadow-md)",
+        whiteSpace: "nowrap",
+        fontSize: 12,
+        color: "var(--text2)",
+      }}
+    >
+      <span>
+        <strong style={{ color: "var(--text)" }}>Tip:</strong> Double-click
+        the canvas to add a node.{" "}
+        <span style={{ opacity: 0.7 }}>
+          Press{" "}
+          <kbd
+            style={{
+              padding: "1px 4px",
+              borderRadius: 3,
+              border: "1px solid var(--border2)",
+              fontSize: 11,
+              background: "var(--bg2)",
+            }}
+          >
+            ?
+          </kbd>{" "}
+          for all shortcuts.
+        </span>
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          setVisible(false);
+          localStorage.setItem("memorey-canvas-tip-dismissed", "1");
+        }}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--muted)",
+          cursor: "pointer",
+          padding: 0,
+          display: "flex",
+          flexShrink: 0,
+        }}
+        aria-label="Dismiss tip"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
 
 export interface MemoryGraphChromeProps {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -307,7 +388,7 @@ export function MemoryGraphChrome(props: MemoryGraphChromeProps) {
                 zIndex: 10,
               }}
             >
-              <div style={{ fontSize: 40 }}>📁</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: "var(--text2)" }}>DROP</div>
               <div
                 style={{
                   fontSize: 16,
@@ -389,6 +470,7 @@ export function MemoryGraphChrome(props: MemoryGraphChromeProps) {
                 inputRef={searchInputRef}
               />
             </div>
+            <CanvasTip />
             {peekId ? (
               <div
                 style={{

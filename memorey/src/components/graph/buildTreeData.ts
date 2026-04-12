@@ -188,7 +188,7 @@ export function buildMasterTreeData(
     id: "tree-root-master-workspace",
     kind: "master",
     label: "All canvases",
-    emoji: "🧭",
+    emoji: "",
     children: canvasChildren,
   };
 }

@@ -103,18 +103,7 @@ function drawFileIcon(
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
-  const emoji =
-    type === "pdf"
-      ? "📄"
-      : type === "video"
-        ? "🎬"
-        : type === "doc"
-          ? "📝"
-          : type === "link"
-            ? "🔗"
-            : "📁";
-
-  ctx.fillText(emoji, cx, cy - 8);
+  ctx.fillText(label, cx, cy - 8);
 
   ctx.font = "700 9px Inter, system-ui, sans-serif";
   ctx.fillStyle = color;

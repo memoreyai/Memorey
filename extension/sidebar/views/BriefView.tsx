@@ -184,7 +184,7 @@ export function BriefView() {
         onClick={() => void handleCopy()}
         disabled={!brief || loading}
       >
-        {copied ? "✓ Copied!" : "Copy to Clipboard"}
+        {copied ? "Copied!" : "Copy to Clipboard"}
       </button>
 
       {/* Stats */}

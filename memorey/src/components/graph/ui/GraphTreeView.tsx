@@ -29,7 +29,7 @@ export function GraphTreeView() {
         edges={edges}
         vaults={vaults}
         canvasName={activeCanvas?.name ?? "Canvas"}
-        canvasEmoji={activeCanvas?.emoji ?? "🧠"}
+        canvasEmoji={activeCanvas?.emoji ?? ""}
         masterNodeBio={activeCanvas?.masterNodeBio ?? undefined}
         isMasterView={isMasterView}
         canvases={canvases}

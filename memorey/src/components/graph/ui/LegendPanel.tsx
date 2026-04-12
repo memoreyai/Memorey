@@ -105,43 +105,37 @@ export function LegendPanel({ isOpen, onToggle }: LegendPanelProps) {
         >
           <Section label="Statistics">
             <StatRow
-              icon="🧠"
+              color="#FF6600"
               label="Memories"
               value={stats.memories}
-              color="#FF6600"
             />
             <StatRow
-              icon="⇄"
+              color="#4FC1E9"
               label="Connections"
               value={stats.connections}
-              color="#4FC1E9"
             />
             <StatRow
-              icon="📄"
+              color="#E05C5C"
               label="Documents"
               value={stats.documents}
-              color="#E05C5C"
             />
             <StatRow
-              icon="🖼️"
+              color="#5DCAA5"
               label="Images"
               value={stats.images}
-              color="#5DCAA5"
             />
             {stats.stickies > 0 ? (
               <StatRow
-                icon="📝"
+                color="#F5C542"
                 label="Sticky notes"
                 value={stats.stickies}
-                color="#F5C542"
               />
             ) : null}
             {stats.kanban > 0 ? (
               <StatRow
-                icon="📋"
+                color="#C792EA"
                 label="Kanban cards"
                 value={stats.kanban}
-                color="#C792EA"
               />
             ) : null}
           </Section>
@@ -220,19 +214,26 @@ function Divider() {
 }
 
 function StatRow({
-  icon,
   label,
   value,
   color,
 }: {
-  icon: string;
   label: string;
   value: number;
   color: string;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-      <span style={{ fontSize: 12, flexShrink: 0 }}>{icon}</span>
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: color,
+          flexShrink: 0,
+          display: "inline-block",
+        }}
+      />
       <span style={{ flex: 1, fontSize: 11, color: "var(--text2)" }}>
         {label}
       </span>

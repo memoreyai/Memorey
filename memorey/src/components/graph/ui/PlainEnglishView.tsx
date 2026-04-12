@@ -14,17 +14,17 @@ function fileNodeTitlePrefix(n: MemoryNode): string {
   if (n.nodeKindV2 !== "file" && !n.fileUrl) return "";
   switch (n.fileType) {
     case "image":
-      return "🖼️ ";
+      return "";
     case "pdf":
-      return "📄 ";
+      return "";
     case "video":
-      return "🎬 ";
+      return "";
     case "doc":
-      return "📝 ";
+      return "";
     case "link":
-      return "🔗 ";
+      return "";
     default:
-      return "📁 ";
+      return "";
   }
 }
 
@@ -284,7 +284,7 @@ function PlainNodeCard({
                 color: "#F5C542",
               }}
             >
-              📋 {node.kanbanStatus}
+              {node.kanbanStatus}
             </span>
           ) : null}
         </div>
@@ -549,7 +549,7 @@ export function PlainEnglishView({ style, onSwitchToGraph }: PlainEnglishViewPro
               gap: 12,
             }}
           >
-            <div style={{ fontSize: 32, opacity: 0.3 }}>📖</div>
+            <div style={{ fontSize: 32, opacity: 0.3 }}></div>
             <div
               style={{
                 fontSize: 14,

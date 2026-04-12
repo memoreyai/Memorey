@@ -833,8 +833,8 @@ export default function KanbanPage() {
   }
 
   const headerTitle = isMasterView
-    ? "🌐 Master View"
-    : `${activeCanvas?.emoji ?? "🧠"} ${activeCanvas?.name ?? "Canvas"}`;
+    ? "Master View"
+    : `${activeCanvas?.emoji ?? ""} ${activeCanvas?.name ?? "Canvas"}`.trim();
 
   const renderColumnBody = (
     columnId: string | null,
@@ -900,7 +900,7 @@ export default function KanbanPage() {
             className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-[inherit] border-2 border-red-500 bg-red-500/10"
             aria-hidden
           >
-            <span className="text-xl font-bold text-red-500">✕</span>
+            <span className="text-xl font-bold text-red-500">&times;</span>
           </div>
         ) : null}
         {children}
