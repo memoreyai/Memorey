@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["chrome"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["background.ts", "content.ts", "sidebar/**/*.ts", "sidebar/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
+}

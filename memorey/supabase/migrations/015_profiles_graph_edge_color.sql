@@ -1,0 +1,2 @@
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS graph_edge_color TEXT DEFAULT NULL;
