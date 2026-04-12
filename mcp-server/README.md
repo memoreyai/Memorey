@@ -13,7 +13,7 @@ Copy `.env.example` to `.env`. Required:
 
 ## Auth
 
-Clients send `Authorization: Bearer <Supabase JWT>`. Use the same access token as the Memorey web app session, or expose a long-lived token from Settings if you add API keys later.
+Clients send `Authorization: Bearer <token>` where the token is a Supabase access token (JWT) from the Memorey web app session. The server validates the token against Supabase Auth to identify the user.
 
 ## Scripts
 

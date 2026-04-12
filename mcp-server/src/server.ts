@@ -20,7 +20,7 @@ const MCP_MANIFEST = {
   description: "Your portable memory graph for every AI you use",
   auth: {
     type: "bearer",
-    description: "Your Memorey API key from settings",
+    description: "Your Supabase access token from the Memorey web app session",
   },
   tools: [
     {
@@ -206,7 +206,7 @@ app.post("/tools/get_context", tokenRateLimiter, requireAuth, async (req: Authed
 
     if (nameFilter.length > 0) {
       activeVaults = vaults.filter(
-        (v) => nameFilter.includes(v.name.trim().toLowerCase())
+        (v) => v.is_active && nameFilter.includes(v.name.trim().toLowerCase())
       );
     }
 
@@ -458,6 +458,25 @@ app.post(
 app.use((_req, res) => {
   res.status(404).json({ error: "Not found" });
 });
+
+const requiredEnvVars: Array<{ key: string; value: string }> = [
+  { key: "SUPABASE_URL", value: SUPABASE_URL },
+  { key: "SUPABASE_SERVICE_ROLE_KEY", value: SUPABASE_SERVICE_ROLE_KEY },
+];
+
+for (const { key, value } of requiredEnvVars) {
+  if (!value) {
+    console.error(
+      `Missing required environment variable: ${key}` +
+        (key === "SUPABASE_URL" ? " (also checked NEXT_PUBLIC_SUPABASE_URL)" : "")
+    );
+    process.exit(1);
+  }
+}
+
+if (!OPENAI_API_KEY) {
+  console.warn("OPENAI_API_KEY not set — semantic search in get_context will be disabled");
+}
 
 app.listen(PORT, () => {
   console.log(`Memorey MCP server listening on :${PORT}`);
