@@ -12,10 +12,11 @@ const VIEWS: { id: View; label: string }[] = [
 ];
 
 export function ViewSwitcher() {
-  const { currentView, pendingNodes } = useMemoreyState();
+  const { currentView, pendingNodes, pendingProposals } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
 
   const activeTab = currentView === "node-detail" ? "nodes" : currentView;
+  const pendingCount = pendingNodes.length + pendingProposals.length;
 
   return (
     <nav className="memorey-view-switcher">
@@ -26,8 +27,11 @@ export function ViewSwitcher() {
           onClick={() => dispatch({ type: "SET_VIEW", view: view.id })}
         >
           {view.label}
-          {view.id === "pending" && pendingNodes.length > 0 && (
-            <span className="memorey-view-tab__badge">{pendingNodes.length}</span>
+          {view.id === "pending" && pendingCount > 0 && (
+            <span className="memorey-view-tab__badge">{pendingCount}</span>
+          )}
+          {view.id === "conflicts" && pendingProposals.length > 0 && (
+            <span className="memorey-view-tab__badge">{pendingProposals.length}</span>
           )}
         </button>
       ))}

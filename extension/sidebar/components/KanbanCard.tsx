@@ -1,10 +1,12 @@
 import React, { useCallback } from "react";
 import type { MemoryNode } from "../types";
 import { StatusBadge } from "./StatusBadge";
+import { PLATFORM_ABBREV } from "../utils/colors";
+import { formatRelativeTime } from "../utils/time";
 
 function confidenceColor(c: number): string {
-  if (c >= 0.8) return "var(--memorey-success)";
-  if (c >= 0.5) return "var(--memorey-warning)";
+  if (c > 0.7) return "var(--memorey-success)";
+  if (c >= 0.3) return "var(--memorey-warning)";
   return "var(--memorey-error)";
 }
 
@@ -49,12 +51,16 @@ export function KanbanCard({ node, groupMode, draggable, onClick }: KanbanCardPr
         {groupMode !== "status" && (
           <StatusBadge status={node.status} />
         )}
+        <span className="memorey-platform-icon memorey-platform-icon--small" title={node.source.platform}>
+          {PLATFORM_ABBREV[node.source.platform] ?? node.source.platform.slice(0, 2).toUpperCase()}
+        </span>
         <div className="memorey-kanban-card__confidence-bar">
           <div
             className="memorey-kanban-card__confidence-fill"
             style={{ width: `${pct}%`, background: confidenceColor(node.confidence) }}
           />
         </div>
+        <span className="memorey-kanban-card__time">{formatRelativeTime(node.createdAt)}</span>
       </div>
     </div>
   );

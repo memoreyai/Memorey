@@ -10,7 +10,7 @@ interface LayoutProps {
 function getStoredTheme(): "dark" | "light" {
   try {
     if (typeof chrome !== "undefined" && chrome.storage?.local) {
-      return "dark"; // async load below will correct this
+      return "dark";
     }
     const saved = localStorage.getItem("memorey-theme");
     return saved === "light" ? "light" : "dark";
@@ -20,7 +20,7 @@ function getStoredTheme(): "dark" | "light" {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { currentView } = useMemoreyState();
+  const { currentView, canvases, selectedCanvasId } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
   const [theme, setTheme] = useState<"dark" | "light">(getStoredTheme);
 
@@ -55,8 +55,26 @@ export function Layout({ children }: LayoutProps) {
           <div className="memorey-header__logo">M</div>
           <span className="memorey-header__title">Memorey</span>
         </div>
+
+        {canvases.length > 0 && (
+          <div className="memorey-header__canvas-selector">
+            <select
+              value={selectedCanvasId}
+              onChange={(e) => dispatch({ type: "SET_CANVAS", canvasId: e.target.value })}
+              className="memorey-canvas-select"
+              title="Select workspace"
+            >
+              <option value="all">All Canvases</option>
+              {canvases.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.emoji || "\uD83D\uDCCB"} {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="memorey-header__actions">
-          {/* Theme toggle */}
           <button
             className="memorey-header__icon-btn"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
@@ -81,7 +99,6 @@ export function Layout({ children }: LayoutProps) {
             )}
           </button>
 
-          {/* Settings */}
           <button
             className={`memorey-header__icon-btn${currentView === "settings" ? " memorey-header__icon-btn--active" : ""}`}
             title="Settings"

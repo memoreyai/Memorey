@@ -35,7 +35,7 @@ function normalizeSource(platform: string): string {
 }
 
 export function KanbanView() {
-  const { allNodes, vaults, currentView } = useMemoreyState();
+  const { allNodes, vaults, currentView, selectedCanvasId } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
   const actions = useNodeActions();
 
@@ -49,7 +49,10 @@ export function KanbanView() {
   }, []);
 
   const columns = useMemo(() => {
-    const activeNodes = allNodes.filter((n) => n.status !== "rejected" || groupMode === "status");
+    const canvasFiltered = selectedCanvasId === "all"
+      ? allNodes
+      : allNodes.filter((n) => (n as any).canvasId === selectedCanvasId);
+    const activeNodes = canvasFiltered.filter((n) => n.status !== "rejected" || groupMode === "status");
 
     if (groupMode === "vault") {
       const groups = new Map<string, MemoryNode[]>();
@@ -102,7 +105,7 @@ export function KanbanView() {
     }));
     if (hideEmpty) cols = cols.filter((c) => c.nodes.length > 0);
     return cols;
-  }, [allNodes, vaults, groupMode, hideEmpty]);
+  }, [allNodes, vaults, groupMode, hideEmpty, selectedCanvasId]);
 
   const handleCardClick = useCallback(
     (nodeId: string) => dispatch({ type: "NAVIGATE_TO_NODE", nodeId, from: currentView }),

@@ -2737,3 +2737,263 @@ body {
 .memorey-login__link:hover {
   text-decoration: underline;
 }
+
+/* ── Canvas selector ────────────────────────────── */
+.memorey-header__canvas-selector {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.memorey-canvas-select {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 6px;
+  background: var(--memorey-surface);
+  color: var(--memorey-text);
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 24px;
+}
+.memorey-canvas-select:focus {
+  border-color: var(--memorey-orange);
+}
+
+/* ── Error state ────────────────────────────────── */
+.memorey-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 32px 24px;
+  text-align: center;
+  gap: 12px;
+}
+.memorey-error-state__icon {
+  margin-bottom: 4px;
+}
+.memorey-error-state__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--memorey-text);
+}
+.memorey-error-state__text {
+  font-size: 13px;
+  color: var(--memorey-text-secondary);
+  max-width: 260px;
+}
+.memorey-error-state__retry {
+  margin-top: 8px;
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--memorey-orange);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memorey-error-state__retry:hover {
+  background: var(--memorey-orange-hover);
+}
+
+/* ── Proposal cards (ConflictsView) ─────────────── */
+.memorey-conflicts__header {
+  padding: 0 0 8px;
+  border-bottom: 1px solid var(--memorey-border);
+  margin-bottom: 12px;
+}
+.memorey-conflicts__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--memorey-text-secondary);
+}
+.memorey-conflicts__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.memorey-proposal-card {
+  background: var(--memorey-surface);
+  border: 1px solid var(--memorey-border);
+  border-radius: 8px;
+  padding: 12px;
+  transition: opacity 0.2s;
+}
+.memorey-proposal-card--processing {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.memorey-proposal-card__content {
+  font-size: 13px;
+  color: var(--memorey-text);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+.memorey-proposal-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.memorey-proposal-card__time {
+  font-size: 11px;
+  color: var(--memorey-text-secondary);
+}
+.memorey-proposal-card__actions {
+  display: flex;
+  gap: 8px;
+}
+.memorey-proposal-card__btn {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memorey-proposal-card__btn--approve {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--memorey-success);
+}
+.memorey-proposal-card__btn--approve:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.3);
+}
+.memorey-proposal-card__btn--reject {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--memorey-error);
+}
+.memorey-proposal-card__btn--reject:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.3);
+}
+.memorey-proposal-card__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Node card confidence editor ────────────────── */
+.memorey-node-card__confidence-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 2px;
+  border-top: 1px solid var(--memorey-border);
+  margin-top: 6px;
+}
+.memorey-node-card__confidence-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--memorey-orange);
+  cursor: pointer;
+}
+.memorey-node-card__confidence-value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--memorey-text-secondary);
+  min-width: 32px;
+  text-align: center;
+}
+.memorey-node-card__confidence-save {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 4px;
+  background: var(--memorey-orange);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.memorey-node-card__confidence-save:hover {
+  background: var(--memorey-orange-hover);
+}
+
+/* ── Node card quick actions row ────────────────── */
+.memorey-node-card__quick-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.memorey-node-card__web-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--memorey-text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.memorey-node-card__web-btn:hover {
+  color: var(--memorey-orange);
+  border-color: var(--memorey-orange);
+}
+
+/* ── Pending view redirect ──────────────────────── */
+.memorey-pending__redirect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+}
+.memorey-pending__redirect-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--memorey-warning);
+}
+.memorey-pending__redirect-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--memorey-orange);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memorey-pending__redirect-btn:hover {
+  background: var(--memorey-orange-hover);
+}
+
+/* ── Kanban card timestamp ──────────────────────── */
+.memorey-kanban-card__time {
+  font-size: 10px;
+  color: var(--memorey-text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Small platform icon variant ────────────────── */
+.memorey-platform-icon--small {
+  font-size: 9px;
+  padding: 1px 3px;
+}
+
+/* ── Fact item clickable ────────────────────────── */
+.memorey-fact-item[role="button"] {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.memorey-fact-item[role="button"]:hover {
+  background: var(--memorey-surface);
+  border-radius: 6px;
+}

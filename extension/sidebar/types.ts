@@ -53,8 +53,31 @@ export interface MemoryEdge {
   createdAt?: string;
 }
 
+export interface Canvas {
+  id: string;
+  name: string;
+  emoji: string | null;
+  is_active: boolean;
+  display_order: number;
+  user_id: string;
+  created_at: string;
+}
+
+export interface PendingProposal {
+  id: string;
+  user_id: string;
+  proposed_value: string;
+  proposed_title: string | null;
+  proposed_vault_id: string | null;
+  proposed_vault_name: string | null;
+  source: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+}
+
 export interface Stats {
   totalFacts: number;
   activeFacts: number;
+  pendingCount: number;
   vaultBreakdown: Record<string, number>;
 }

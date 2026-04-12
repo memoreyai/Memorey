@@ -7,7 +7,7 @@ import { SearchBar } from "../components/SearchBar";
 import { NodeCard } from "../components/NodeCard";
 
 export function NodesListView() {
-  const { allNodes, vaults } = useMemoreyState();
+  const { allNodes, vaults, selectedCanvasId } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
   const actions = useNodeActions();
 
@@ -15,7 +15,9 @@ export function NodesListView() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredNodes = useMemo(() => {
-    let nodes = [...allNodes];
+    let nodes = selectedCanvasId === "all"
+      ? [...allNodes]
+      : allNodes.filter((n) => (n as any).canvasId === selectedCanvasId);
 
     if (filters.vault !== "all") {
       nodes = nodes.filter((n) => n.vault === filters.vault);
@@ -51,7 +53,7 @@ export function NodesListView() {
     }
 
     return nodes;
-  }, [allNodes, filters, searchQuery]);
+  }, [allNodes, filters, searchQuery, selectedCanvasId]);
 
   const handleApprove = useCallback(
     (node: MemoryNode) => void actions.approveNode(node.id),
@@ -66,6 +68,11 @@ export function NodesListView() {
   const handleNodeClick = useCallback(
     (nodeId: string) => dispatch({ type: "NAVIGATE_TO_NODE", nodeId, from: "nodes" }),
     [dispatch]
+  );
+
+  const handleConfidenceChange = useCallback(
+    (nodeId: string, value: number) => void actions.updateNodeConfidence(nodeId, value),
+    [actions]
   );
 
   return (
@@ -91,6 +98,8 @@ export function NodesListView() {
               onClick={() => handleNodeClick(node.id)}
               onApprove={() => handleApprove(node)}
               onReject={() => handleReject(node)}
+              onConfidenceChange={handleConfidenceChange}
+              showQuickActions
             />
           ))}
         </div>
