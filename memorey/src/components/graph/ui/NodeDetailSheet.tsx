@@ -1679,29 +1679,33 @@ function MemoryNodeDetailSheet({
                 onClick={startEditing}
                 title="Edit memory"
                 style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 6,
-                  background: "none",
-                  border: "1px solid var(--border)",
-                  cursor: "pointer",
-                  color: "var(--muted)",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
+                  gap: 4,
+                  padding: "4px 10px",
+                  borderRadius: 6,
+                  background: "var(--bg2)",
+                  border: "1px solid var(--border)",
+                  cursor: "pointer",
+                  color: "var(--text2)",
+                  fontSize: 11,
+                  fontWeight: 500,
                   flexShrink: 0,
-                  transition: "color 0.1s, border-color 0.1s",
+                  transition: "color 0.15s, border-color 0.15s, background 0.15s",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "var(--orange)";
                   e.currentTarget.style.borderColor = "var(--orange)";
+                  e.currentTarget.style.background = "var(--orange)" + "11";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--muted)";
+                  e.currentTarget.style.color = "var(--text2)";
                   e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.background = "var(--bg2)";
                 }}
               >
                 <Pencil size={11} />
+                Edit
               </button>
             )}
             <button

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   MemoryNode,
@@ -34,34 +34,40 @@ export function useSupabaseData(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const supabaseRef = useRef(supabase);
+  supabaseRef.current = supabase;
+
+  const fetchedRef = useRef(false);
+
   const refresh = useCallback(async () => {
-    if (!supabase || !userId) return;
+    const client = supabaseRef.current;
+    if (!client || !userId) return;
     setLoading(true);
     setError(null);
 
     try {
       const [nodesRes, vaultsRes, edgesRes, canvasesRes, proposalsRes] =
         await Promise.all([
-          supabase
+          client
             .from("memory_nodes")
             .select("*, category_vaults(id, name, color, icon)")
             .eq("user_id", userId)
             .eq("is_active", true)
             .order("created_at", { ascending: false }),
-          supabase
+          client
             .from("category_vaults")
             .select("*")
             .eq("user_id", userId)
             .eq("is_active", true)
             .order("display_order", { ascending: true }),
-          supabase.from("node_edges").select("*").eq("user_id", userId),
-          supabase
+          client.from("node_edges").select("*").eq("user_id", userId),
+          client
             .from("canvases")
             .select("*")
             .eq("user_id", userId)
             .eq("is_active", true)
             .order("display_order", { ascending: true }),
-          supabase
+          client
             .from("pending_proposals")
             .select("*")
             .eq("user_id", userId)
@@ -164,26 +170,30 @@ export function useSupabaseData(
     } finally {
       setLoading(false);
     }
-  }, [supabase, userId]);
+  }, [userId]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    if (!userId || !supabaseRef.current) return;
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+    void refresh();
+  }, [userId, refresh]);
 
-  const vaultBreakdown: Record<string, number> = {};
-  nodes.forEach((n) => {
-    const vName = vaults.find((v) => v.id === n.vault)?.name ?? "Unknown";
-    vaultBreakdown[vName] = (vaultBreakdown[vName] ?? 0) + 1;
-  });
+  const stats: Stats = useMemo(() => {
+    const vaultBreakdown: Record<string, number> = {};
+    nodes.forEach((n) => {
+      const vName = vaults.find((v) => v.id === n.vault)?.name ?? "Unknown";
+      vaultBreakdown[vName] = (vaultBreakdown[vName] ?? 0) + 1;
+    });
+    return {
+      totalFacts: nodes.length,
+      activeFacts: nodes.length,
+      pendingCount: pendingProposals.length,
+      vaultBreakdown,
+    };
+  }, [nodes, vaults, pendingProposals.length]);
 
-  const stats: Stats = {
-    totalFacts: nodes.length,
-    activeFacts: nodes.length,
-    pendingCount: pendingProposals.length,
-    vaultBreakdown,
-  };
-
-  const recentFacts = nodes.slice(0, 10);
+  const recentFacts = useMemo(() => nodes.slice(0, 10), [nodes]);
 
   return {
     nodes,

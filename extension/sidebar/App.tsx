@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, createContext, useContext } from "react";
+import React, { useEffect, useRef, useMemo, createContext, useContext } from "react";
 import { Layout } from "./components/Layout";
 import { DashboardView } from "./views/DashboardView";
 import { NodesListView } from "./views/NodesListView";
@@ -27,12 +27,46 @@ function AuthenticatedApp() {
   const { token, userId } = useAuth();
   const loadedRef = useRef(false);
 
-  const supabase = token ? createSupabaseClient(token) : null;
+  const supabase = useMemo(
+    () => (token ? createSupabaseClient(token) : null),
+    [token]
+  );
   const data = useSupabaseData(supabase, userId);
 
+  const prevDataRef = useRef({
+    nodes: data.nodes,
+    vaults: data.vaults,
+    edges: data.edges,
+    canvases: data.canvases,
+    pendingProposals: data.pendingProposals,
+    loading: data.loading,
+    error: data.error,
+  });
+
   useEffect(() => {
-    if (loadedRef.current) return;
-    if (!data.loading && data.nodes !== undefined) {
+    const prev = prevDataRef.current;
+    const changed =
+      prev.nodes !== data.nodes ||
+      prev.vaults !== data.vaults ||
+      prev.edges !== data.edges ||
+      prev.canvases !== data.canvases ||
+      prev.pendingProposals !== data.pendingProposals ||
+      prev.loading !== data.loading ||
+      prev.error !== data.error;
+
+    if (!changed) return;
+
+    prevDataRef.current = {
+      nodes: data.nodes,
+      vaults: data.vaults,
+      edges: data.edges,
+      canvases: data.canvases,
+      pendingProposals: data.pendingProposals,
+      loading: data.loading,
+      error: data.error,
+    };
+
+    if (!loadedRef.current && !data.loading && data.nodes !== undefined) {
       loadedRef.current = true;
     }
 
