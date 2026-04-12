@@ -478,6 +478,6 @@ if (!OPENAI_API_KEY) {
   console.warn("OPENAI_API_KEY not set — semantic search in get_context will be disabled");
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, "::", () => {
   console.log(`Memorey MCP server listening on :${PORT}`);
 });
