@@ -103,7 +103,8 @@ body {
   justify-content: center;
 }
 
-.memorey-header__settings:hover {
+.memorey-header__settings:hover,
+.memorey-header__settings--active {
   background: var(--memorey-surface);
   color: var(--memorey-text);
 }
@@ -2393,4 +2394,178 @@ body {
   gap: 8px;
   flex-wrap: wrap;
   padding-top: 4px;
+}
+
+/* ── Status bar sync dot ── */
+
+.memorey-status-bar__sync {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.memorey-status-bar__sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Settings View ── */
+
+.memorey-settings {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.memorey-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--memorey-border);
+  padding-bottom: 16px;
+}
+
+.memorey-settings__section:last-child {
+  border-bottom: none;
+}
+
+.memorey-settings__heading {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--memorey-text);
+  margin: 0;
+}
+
+.memorey-settings__field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memorey-settings__field-group--indent {
+  padding-left: 4px;
+  margin-top: 4px;
+}
+
+.memorey-settings__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--memorey-text-secondary);
+}
+
+.memorey-settings__hint {
+  font-size: 11px;
+  color: var(--memorey-text-secondary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.memorey-settings__input {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 6px;
+  background: var(--memorey-surface);
+  color: var(--memorey-text);
+  outline: none;
+}
+
+.memorey-settings__input:focus {
+  border-color: var(--memorey-success);
+}
+
+.memorey-settings__select {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 6px;
+  background: var(--memorey-surface);
+  color: var(--memorey-text);
+  outline: none;
+}
+
+.memorey-settings__error {
+  font-size: 12px;
+  color: var(--memorey-error);
+  margin: 0;
+}
+
+.memorey-settings__btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  width: fit-content;
+}
+
+.memorey-settings__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.memorey-settings__btn--primary {
+  background: var(--memorey-success);
+  color: #fff;
+}
+
+.memorey-settings__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.memorey-settings__btn--secondary {
+  background: var(--memorey-surface);
+  color: var(--memorey-text);
+  border: 1px solid var(--memorey-border);
+}
+
+.memorey-settings__btn--secondary:hover:not(:disabled) {
+  background: var(--memorey-border);
+}
+
+.memorey-settings__btn--danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--memorey-error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.memorey-settings__btn--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.memorey-settings__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--memorey-text);
+}
+
+.memorey-settings__row--dim {
+  color: var(--memorey-text-secondary);
+  font-size: 12px;
+}
+
+.memorey-settings__status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.memorey-settings__toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--memorey-text);
+  cursor: pointer;
+}
+
+.memorey-settings__toggle-row input[type="checkbox"] {
+  accent-color: var(--memorey-success);
 }

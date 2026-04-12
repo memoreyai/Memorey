@@ -62,6 +62,8 @@ async function build() {
     loader: { ".tsx": "tsx", ".ts": "ts", ".css": "css" },
     define: {
       "process.env.NODE_ENV": '"production"',
+      "__SUPABASE_URL__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL || ""),
+      "__SUPABASE_ANON_KEY__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""),
     },
   });
 
@@ -93,6 +95,8 @@ async function watch() {
     loader: { ".tsx": "tsx", ".ts": "ts", ".css": "css" },
     define: {
       "process.env.NODE_ENV": '"production"',
+      "__SUPABASE_URL__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_URL || ""),
+      "__SUPABASE_ANON_KEY__": JSON.stringify(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""),
     },
   });
 

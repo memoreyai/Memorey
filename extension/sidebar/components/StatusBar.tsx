@@ -1,8 +1,16 @@
 import React from "react";
 import { useMemoreyState } from "../store/memoreyStore";
+import type { SyncStatus } from "../services/SyncService";
+
+const SYNC_DOT_COLOR: Record<SyncStatus, string> = {
+  synced: "var(--memorey-success)",
+  syncing: "var(--memorey-warning)",
+  offline: "var(--memorey-text-secondary)",
+  not_connected: "var(--memorey-text-secondary)",
+};
 
 export function StatusBar() {
-  const { stats, pendingNodes, lastSyncTime } = useMemoreyState();
+  const { stats, pendingNodes, lastSyncTime, syncStatus } = useMemoreyState();
 
   const totalFacts = stats?.totalFacts ?? 0;
   const pendingCount = pendingNodes.length;
@@ -26,8 +34,12 @@ export function StatusBar() {
           </span>
         )}
       </div>
-      <span className="memorey-status-bar__item">
-        synced {formatTime(lastSyncTime)}
+      <span className="memorey-status-bar__item memorey-status-bar__sync">
+        <span
+          className="memorey-status-bar__sync-dot"
+          style={{ background: SYNC_DOT_COLOR[syncStatus] }}
+        />
+        {syncStatus === "syncing" ? "syncing" : `synced ${formatTime(lastSyncTime)}`}
       </span>
     </footer>
   );

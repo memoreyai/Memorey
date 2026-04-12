@@ -8,14 +8,28 @@ import { ConflictsView } from "./views/ConflictsView";
 import { KanbanView } from "./views/KanbanView";
 import { CanvasView } from "./views/CanvasView";
 import { ImportView } from "./views/ImportView";
+import { SettingsView } from "./views/SettingsView";
 import { useMemoreyState } from "./store/memoreyStore";
 import { useMemoreyEngine } from "./hooks/useMemoreyEngine";
 import { useEvents } from "./hooks/useEvents";
 import { PipelineContext } from "./hooks/usePipeline";
 
 export function App() {
-  const { currentView } = useMemoreyState();
-  const { pipeline, isReady, error, refreshState, save } = useMemoreyEngine();
+  const { currentView, syncStatus, lastSyncTime, isAutoSync } =
+    useMemoreyState();
+  const {
+    pipeline,
+    isReady,
+    error,
+    refreshState,
+    save,
+    connectSync,
+    disconnectSync,
+    syncNow,
+    toggleAutoSync,
+    exportGraph,
+    clearLocalData,
+  } = useMemoreyEngine();
 
   // useEvents runs side effects — return value intentionally unused
   useEvents(pipeline);
@@ -48,6 +62,19 @@ export function App() {
         {currentView === "kanban" && <KanbanView />}
         {currentView === "canvas" && <CanvasView />}
         {currentView === "import" && <ImportView />}
+        {currentView === "settings" && (
+          <SettingsView
+            syncStatus={syncStatus}
+            lastSyncTime={lastSyncTime}
+            isAutoSync={isAutoSync}
+            onConnect={connectSync}
+            onDisconnect={disconnectSync}
+            onSyncNow={syncNow}
+            onToggleAutoSync={toggleAutoSync}
+            onExportGraph={exportGraph}
+            onClearLocalData={clearLocalData}
+          />
+        )}
       </Layout>
     </PipelineContext.Provider>
   );

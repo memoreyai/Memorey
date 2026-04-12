@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
 import type { MemoryNode, PipelineStats, VaultDefinition, ReconciliationAction } from "memorey-core";
+import type { SyncStatus } from "../services/SyncService";
 
 // --- View types ---
-export type View = "dashboard" | "nodes" | "node-detail" | "pending" | "kanban" | "canvas" | "conflicts" | "import";
+export type View = "dashboard" | "nodes" | "node-detail" | "pending" | "kanban" | "canvas" | "conflicts" | "import" | "settings";
 
 // --- State ---
 export interface MemoreyState {
@@ -17,6 +18,8 @@ export interface MemoreyState {
   vaults: VaultDefinition[];
   isLoading: boolean;
   lastSyncTime: string | null;
+  syncStatus: SyncStatus;
+  isAutoSync: boolean;
 }
 
 const initialState: MemoreyState = {
@@ -31,6 +34,8 @@ const initialState: MemoreyState = {
   vaults: [],
   isLoading: true,
   lastSyncTime: null,
+  syncStatus: "not_connected",
+  isAutoSync: true,
 };
 
 // --- Actions ---
@@ -46,6 +51,8 @@ export type MemoreyAction =
   | { type: "SET_VAULTS"; vaults: VaultDefinition[] }
   | { type: "SET_LOADING"; isLoading: boolean }
   | { type: "SET_LAST_SYNC"; time: string }
+  | { type: "SET_SYNC_STATUS"; status: SyncStatus }
+  | { type: "SET_AUTO_SYNC"; enabled: boolean }
   | { type: "UPDATE_NODE"; node: MemoryNode }
   | { type: "REMOVE_PENDING_NODE"; nodeId: string }
   | { type: "REFRESH_ALL"; payload: {
@@ -82,6 +89,10 @@ function memoreyReducer(state: MemoreyState, action: MemoreyAction): MemoreyStat
       return { ...state, isLoading: action.isLoading };
     case "SET_LAST_SYNC":
       return { ...state, lastSyncTime: action.time };
+    case "SET_SYNC_STATUS":
+      return { ...state, syncStatus: action.status };
+    case "SET_AUTO_SYNC":
+      return { ...state, isAutoSync: action.enabled };
     case "UPDATE_NODE": {
       const updated = action.node;
       return {
