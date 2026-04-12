@@ -107,6 +107,7 @@ function CanvasTip() {
           display: "flex",
           flexShrink: 0,
         }}
+        title="Dismiss tip"
         aria-label="Dismiss tip"
       >
         <X size={14} />

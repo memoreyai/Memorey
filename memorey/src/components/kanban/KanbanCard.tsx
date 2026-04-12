@@ -74,6 +74,7 @@ export function KanbanCard({
   return (
     <div
       ref={setNodeRef}
+      className="kanban-card"
       style={{
         ...style,
         position: "relative",

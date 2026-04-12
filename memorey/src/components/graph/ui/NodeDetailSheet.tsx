@@ -931,7 +931,10 @@ function FileNodeDetailSheet({
         </div>
       ) : null}
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+      <div
+        className="node-detail-scroll"
+        style={{ flex: 1, overflowY: "auto", padding: "12px 16px 48px" }}
+      >
         <a
           href={node.fileUrl ?? "#"}
           target="_blank"
@@ -1854,6 +1857,7 @@ function MemoryNodeDetailSheet({
             )}
             <button
               type="button"
+              title="Close"
               onClick={() => {
                 setIsEditing(false);
                 selectNode(null);
@@ -1879,7 +1883,10 @@ function MemoryNodeDetailSheet({
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div
+          className="node-detail-scroll node-detail-panel"
+          style={{ flex: 1, overflowY: "auto", paddingBottom: 48 }}
+        >
           {/* ── Meta: Vault + Source + Dates ── */}
           <div
             style={{

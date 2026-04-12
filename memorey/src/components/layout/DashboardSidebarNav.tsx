@@ -243,18 +243,24 @@ export function DashboardSidebarNav({
       return;
     }
     setExpand(canvas.id);
-    void setActiveCanvas(canvas.id, userId);
+    const prevId = activeCanvasId;
+    void setActiveCanvas(canvas.id, userId).then(() => {
+      resetKanbanIfCanvasChanged(prevId, canvas.id);
+    });
   }
 
   function onCollapsedCanvasTrigger(canvas: Canvas, anchor: HTMLElement) {
     exitMasterView();
+    const prevId = activeCanvasId;
     const r = anchor.getBoundingClientRect();
     setCollapsedPopover((prev) => {
       if (prev?.id === canvas.id) return null;
       return { id: canvas.id, top: r.top, left: r.right + 8 };
     });
     setExpand(canvas.id);
-    void setActiveCanvas(canvas.id, userId);
+    void setActiveCanvas(canvas.id, userId).then(() => {
+      resetKanbanIfCanvasChanged(prevId, canvas.id);
+    });
   }
 
   async function goCanvasSubpage(canvasId: string, href: string) {
@@ -263,6 +269,17 @@ export function DashboardSidebarNav({
       await setActiveCanvas(canvasId, userId);
     }
     router.push(href);
+  }
+
+  /** Switching canvases should land on graph, not preserve another canvas’s kanban route. */
+  function resetKanbanIfCanvasChanged(prevId: string | null, newId: string) {
+    if (
+      prevId !== null &&
+      prevId !== newId &&
+      pathname.startsWith("/dashboard/kanban")
+    ) {
+      router.replace("/dashboard");
+    }
   }
 
   const subLinkClass = (active: boolean) =>
@@ -338,37 +355,6 @@ export function DashboardSidebarNav({
               <CanvasSidebarGlyph canvas={c} size={16} />
               <span className="sidebar-tooltip">{c.name}</span>
             </button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                type="button"
-                className="absolute right-0 top-1/2 z-[1] -translate-y-1/2 rounded p-0.5 opacity-0 transition-opacity group-hover/cv-collapsed:opacity-100 focus:opacity-100"
-                style={{ color: "var(--muted)" }}
-                aria-label={`Canvas options for ${c.name}`}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreHorizontal className="size-3.5" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[140px]">
-                <DropdownMenuItem
-                  onClick={() => {
-                    setCanvasModalScrollDanger(false);
-                    setCanvasModalId(c.id);
-                  }}
-                >
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  disabled={canvases.length <= 1}
-                  onClick={() => {
-                    setCanvasModalScrollDanger(true);
-                    setCanvasModalId(c.id);
-                  }}
-                >
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         ))}
         <div className="pt-1">
@@ -551,7 +537,7 @@ export function DashboardSidebarNav({
           onClick={() => {
             setExpand((e) => (e === "master" ? null : "master"));
           }}
-          className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+          className="memorey-master-view-trigger flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
           style={{ color: "var(--text)" }}
         >
           <LayoutGrid size={15} strokeWidth={1.75} className="shrink-0" style={{ color: "var(--text2)" }} />
@@ -564,7 +550,7 @@ export function DashboardSidebarNav({
         </button>
         <SidebarDropdown open={masterOpen}>
           <div
-            className="border-t px-1 pb-2 pl-3 pt-0"
+            className="memorey-master-subnav border-t px-1 pb-2 pl-3 pt-0"
             style={subNavSurface}
           >
             <Link
@@ -740,7 +726,8 @@ export function DashboardSidebarNav({
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     type="button"
-                    className="flex shrink-0 items-center justify-center rounded p-1 opacity-0 transition-opacity group-hover/canvas-row:opacity-100 focus:opacity-100"
+                    title="Canvas options"
+                    className="sidebar-canvas-options-trigger flex shrink-0 items-center justify-center rounded p-1 opacity-0 transition-opacity group-hover/canvas-row:opacity-100 focus:opacity-100"
                     style={{
                       color: "var(--faint)",
                       background: "transparent",

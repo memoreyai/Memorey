@@ -91,7 +91,7 @@ export function SearchPageClient() {
       className="w-full max-w-full p-4 md:p-8"
       style={{ backgroundColor: "var(--bg)", color: "var(--text)" }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 pe-[52px] md:pe-14">
         <div>
           <h1 className="text-sm font-medium">Search</h1>
           <p className="mt-2 max-w-prose text-sm text-[var(--text2)]">
@@ -99,7 +99,9 @@ export function SearchPageClient() {
             <span className="font-medium text-[var(--text)]">{scopeLabel}</span>
           </p>
         </div>
-        <ThemeToggle />
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+        </div>
       </div>
 
       <form

@@ -10,6 +10,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { parseCssColorToHex6 } from "@/lib/parseCssColor";
 import { useVaultStore } from "@/store/vaultStore";
@@ -142,6 +143,15 @@ export function VaultSettingsPopover({
   const updateVault = useVaultStore((s) => s.updateVault);
   const [saving, setSaving] = useState(false);
   const isDark = useIsDarkTheme();
+
+  useEffect(() => {
+    if (!popover) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [popover, onClose]);
 
   const [fill, setFill] = useState("");
   const [border, setBorder] = useState("");
@@ -288,7 +298,7 @@ export function VaultSettingsPopover({
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="vault-settings-panel fixed z-50 max-h-[min(90vh,560px)] w-[min(calc(100vw-24px),300px)] overflow-y-auto rounded-xl border p-3 text-sm shadow-xl"
+        className="vault-settings-panel node-detail-panel relative fixed z-50 max-h-[min(90vh,560px)] w-[min(calc(100vw-24px),300px)] overflow-y-auto rounded-xl border p-3 pb-12 text-sm shadow-xl"
         style={{
           left,
           top: popover.y,
@@ -300,7 +310,20 @@ export function VaultSettingsPopover({
           boxShadow: "var(--shadow-lg)",
         }}
       >
-        <div className="mb-2 font-semibold">{popover.vault.name}</div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="close-button absolute right-2 top-2 z-[1] flex size-8 items-center justify-center rounded-md border-0 bg-transparent p-1 transition-colors"
+          style={{
+            color: "var(--muted)",
+            cursor: "pointer",
+          }}
+          title="Close"
+          aria-label="Close vault settings"
+        >
+          <X size={16} strokeWidth={2} />
+        </button>
+        <div className="mb-2 pr-8 font-semibold">{popover.vault.name}</div>
         <p className="mb-3 text-xs" style={{ color: "var(--muted)" }}>
           Border, fill, and text apply to the vault header pill and default
           memory cards. Per-card overrides live in node details.

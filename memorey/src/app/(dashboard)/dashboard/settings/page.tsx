@@ -241,7 +241,7 @@ export default function DashboardSettingsPage() {
 
   return (
     <div
-      className="mx-auto max-w-2xl space-y-6 p-4 pb-16 md:p-5 md:pb-20"
+      className="settings-page-root mx-auto max-w-2xl space-y-6 p-4 pb-24 md:p-5 md:pb-28"
       style={{
         backgroundColor: "var(--bg)",
         color: "var(--text)",

@@ -758,6 +758,9 @@ export function VaultManager({ isOpen, userId, onClose }: VaultManagerProps) {
                 {section.vaults.map((vault) => (
             <div
               key={vault.id}
+              className={
+                section.key === "add" ? "vault-row-off-canvas vault-item" : "vault-item"
+              }
               style={{
                 display: "flex",
                 flexDirection: "column",

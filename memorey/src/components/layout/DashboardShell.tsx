@@ -260,7 +260,7 @@ function ShellBody({
 
         <nav
           className={cn(
-            "flex min-h-0 flex-1 flex-col gap-px overflow-y-auto pb-2",
+            "flex min-h-0 flex-1 flex-col gap-px overflow-y-auto overflow-x-hidden pb-2",
             isCollapsed ? "px-0" : "px-2"
           )}
         >

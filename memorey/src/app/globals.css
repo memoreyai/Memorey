@@ -339,10 +339,10 @@
   opacity: 1;
 }
 
-/* Dashboard: Vercel-style density */
+/* Dashboard: readable on laptops; density via components */
 .memorey-dashboard-root {
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: clamp(14px, 0.22vw + 13px, 16px);
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -412,9 +412,121 @@
       "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-size: 1rem;
+    line-height: 1.6;
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* —— Interactive feedback (extends shadcn / base-ui buttons) —— */
+[data-slot="button"][data-variant="default"]:not(:disabled) {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    filter 0.2s ease,
+    background-color 0.2s ease;
+}
+[data-slot="button"][data-variant="default"]:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+  filter: brightness(1.08);
+}
+[data-slot="button"][data-variant="default"]:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+[data-slot="button"][data-variant="outline"]:not(:disabled),
+[data-slot="button"][data-variant="secondary"]:not(:disabled) {
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease;
+}
+[data-slot="button"][data-variant="outline"]:not(:disabled):hover,
+[data-slot="button"][data-variant="secondary"]:not(:disabled):hover {
+  border-color: #ff6600;
+  box-shadow: 0 0 8px rgba(255, 102, 0, 0.15);
+  color: #ff6600;
+}
+[data-slot="button"][data-variant="outline"]:not(:disabled):active,
+[data-slot="button"][data-variant="secondary"]:not(:disabled):active {
+  box-shadow: 0 0 4px rgba(255, 102, 0, 0.2);
+}
+
+[data-slot="button"][data-variant="ghost"]:not(:disabled),
+[data-slot="button"][data-variant="destructive"]:not(:disabled) {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  border-radius: 8px;
+}
+[data-slot="button"][data-variant="ghost"]:not(:disabled):hover {
+  background-color: rgba(255, 102, 0, 0.08);
+}
+[data-slot="button"][data-variant="ghost"]:not(:disabled):active {
+  background-color: rgba(255, 102, 0, 0.15);
+}
+
+[data-clickable="true"],
+.node-card,
+.kanban-card,
+.vault-item,
+.history-entry {
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    background-color 0.15s ease;
+  cursor: pointer;
+}
+[data-clickable="true"]:hover,
+.node-card:hover,
+.kanban-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.memorey-master-view-trigger,
+.memorey-master-subnav a {
+  cursor: pointer;
+}
+
+/* Panels: readable text + bottom breathing room */
+.node-detail-panel,
+.node-detail-content,
+.settings-page-root,
+.sidebar-panel-content {
+  font-size: max(0.875rem, 14px);
+}
+.node-detail-scroll {
+  padding-bottom: 48px;
+}
+
+/* Vault rows (e.g. not on this canvas) — neutral, never alarming reds */
+.vault-item-muted,
+.vault-row-off-canvas {
+  background-color: color-mix(in oklab, var(--bg2) 88%, transparent);
+  border-color: var(--border) !important;
+}
+
+.memorey-sidebar.sidebar-collapsed {
+  overflow-x: hidden;
+}
+
+.close-button:hover {
+  background: color-mix(in oklab, var(--text) 10%, transparent) !important;
+  color: var(--text) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="button"][data-variant="default"]:not(:disabled):hover,
+  [data-clickable="true"]:hover,
+  .node-card:hover,
+  .kanban-card:hover {
+    transform: none;
   }
 }
 

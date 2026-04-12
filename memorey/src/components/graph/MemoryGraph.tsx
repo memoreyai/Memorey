@@ -525,6 +525,10 @@ export function MemoryGraph() {
     onCanvasDragLeave,
   });
 
+  useEffect(() => {
+    setCurrentView("graph");
+  }, [activeCanvasId]);
+
   return (
     <>
       {pendingCanvasDrop ? (
