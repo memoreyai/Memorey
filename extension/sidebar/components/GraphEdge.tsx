@@ -13,7 +13,7 @@ export function GraphEdge({ edge, x1, y1, x2, y2 }: GraphEdgeProps) {
   const [hovered, setHovered] = useState(false);
   const thickness = Math.max(1, Math.min(edge.weight * 3, 5));
   const midX = (x1 + x2) / 2;
-  const midY = (x1 + y2) / 2 - 8;
+  const midY = (y1 + y2) / 2 - 8;
 
   return (
     <g

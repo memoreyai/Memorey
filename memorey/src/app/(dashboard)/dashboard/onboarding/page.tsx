@@ -254,6 +254,7 @@ export default function OnboardingPage() {
     const canvasStore = useCanvasStore.getState();
     const mapped = {
       id: canvasId,
+      userId,
       name: canvasName.trim(),
       emoji: null,
       color: "#5DCAA5",
@@ -265,6 +266,7 @@ export default function OnboardingPage() {
       isActive: true,
       masterLineStyle: null,
       masterLineColor: null,
+      createdAt: new Date().toISOString(),
     };
     canvasStore.canvases = [...canvasStore.canvases, mapped];
     useCanvasStore.setState({ canvases: canvasStore.canvases });
@@ -306,7 +308,6 @@ export default function OnboardingPage() {
           userId: node.user_id as string,
           vaultId: node.vault_id as string,
           vaultName: selectedVault?.name ?? "Personal",
-          vaultColor: selectedVault?.color ?? "#5DCAA5",
           canvasId: node.canvas_id as string | undefined,
           title: node.title as string,
           value: node.value as string,

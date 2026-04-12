@@ -56,9 +56,11 @@ export async function POST(request: Request) {
       customerPayload.customer_id = sub.dodo_customer_id;
     }
 
-    const session = await dodo.checkoutSessions.create({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const session = await (dodo as any).payments.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
       customer: customerPayload,
+      payment_link: true,
       return_url: `${appUrl}/dashboard?upgraded=true`,
       metadata: {
         supabase_user_id: user.id,
@@ -66,7 +68,7 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ url: session.checkout_url });
+    return NextResponse.json({ url: session.payment_link });
   } catch (err) {
     console.error("[dodo/checkout]", err);
     return NextResponse.json(

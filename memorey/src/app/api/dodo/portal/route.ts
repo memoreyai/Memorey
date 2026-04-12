@@ -42,7 +42,8 @@ export async function POST() {
       environment: secret.startsWith("sk_test_") ? "test_mode" : "live_mode",
     });
 
-    const portal = await dodo.customers.customerPortal.create(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const portal = await (dodo.customers as any).customerPortal.create(
       sub.dodo_customer_id,
       { send_email: false }
     );

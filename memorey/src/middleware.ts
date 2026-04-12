@@ -65,6 +65,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
+  if (user && isAdminRoute) {
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("is_super_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!adminProfile?.is_super_admin) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return supabaseResponse;
+  }
+
   if (user && path === "/login") {
     const { data: profile } = await supabase
       .from("profiles")

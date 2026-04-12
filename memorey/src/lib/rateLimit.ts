@@ -40,7 +40,8 @@ export async function checkRateLimit(
 ): Promise<{ allowed: boolean }> {
   try {
     const admin = createAdminClient();
-    const { data, error } = await admin.rpc("check_rate_limit", {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (admin as any).rpc("check_rate_limit", {
       p_key: key,
       p_max_requests: maxRequests,
       p_window_seconds: windowSeconds,

@@ -67,10 +67,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Fetch profiles and aggregated counts in parallel
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rpcCall = (admin as any).rpc("admin_user_list_counts");
   const [{ data: profileRows, error: profErr }, { data: countRows, error: countErr }] =
     await Promise.all([
       profileQuery,
-      admin.rpc("admin_user_list_counts"),
+      rpcCall,
     ]);
 
   if (profErr || countErr) {
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest) {
     string,
     { node_count: number; edge_count: number; vault_count: number; last_active: string | null }
   >();
-  for (const r of countRows ?? []) {
+  for (const r of (countRows ?? []) as Record<string, unknown>[]) {
     countsMap.set(r.user_id as string, {
       node_count: Number(r.node_count) || 0,
       edge_count: Number(r.edge_count) || 0,

@@ -303,6 +303,9 @@ export const USER_SEGMENT_LABELS: Record<UserSegment, string> = {
   developer: "Developer",
   consultant: "Consultant",
   researcher: "Researcher",
+  student: "Student",
+  designer: "Designer",
+  other: "Other",
 };
 
 export const AI_USE_CASE_LABELS: Record<AIUseCase, string> = {
