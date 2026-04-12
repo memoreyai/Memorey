@@ -7,6 +7,7 @@ const VIEWS: { id: View; label: string }[] = [
   { id: "pending", label: "Pending" },
   { id: "kanban", label: "Kanban" },
   { id: "conflicts", label: "Conflicts" },
+  { id: "brief", label: "Brief" },
   { id: "canvas", label: "Canvas" },
   { id: "import", label: "Import" },
 ];

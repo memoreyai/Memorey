@@ -7,6 +7,7 @@ import { PendingView } from "./views/PendingView";
 import { ConflictsView } from "./views/ConflictsView";
 import { KanbanView } from "./views/KanbanView";
 import { CanvasView } from "./views/CanvasView";
+import { BriefView } from "./views/BriefView";
 import { ImportView } from "./views/ImportView";
 import { SettingsView } from "./views/SettingsView";
 import { LoginView } from "./views/LoginView";
@@ -104,6 +105,7 @@ function AuthenticatedApp() {
         {currentView === "node-detail" && <NodeDetailView />}
         {currentView === "pending" && <PendingView />}
         {currentView === "conflicts" && <ConflictsView />}
+        {currentView === "brief" && <BriefView />}
         {currentView === "kanban" && <KanbanView />}
         {currentView === "canvas" && <CanvasView />}
         {currentView === "import" && <ImportView />}

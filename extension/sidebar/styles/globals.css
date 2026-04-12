@@ -3193,3 +3193,190 @@ body {
   color: var(--memorey-text-secondary);
   white-space: nowrap;
 }
+
+/* ── Brief AI view ─────────────────────────────── */
+.memorey-brief {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+}
+.memorey-brief__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.memorey-brief__section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--memorey-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.memorey-brief__vault-actions {
+  display: flex;
+  gap: 6px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.memorey-brief__vault-actions button {
+  background: none;
+  border: none;
+  color: var(--memorey-orange);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+}
+.memorey-brief__vault-actions button:hover {
+  text-decoration: underline;
+}
+.memorey-brief__format-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.memorey-brief__format-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 8px;
+  background: var(--memorey-surface);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.memorey-brief__format-btn:hover {
+  border-color: var(--memorey-orange);
+}
+.memorey-brief__format-btn--active {
+  border-color: var(--memorey-orange);
+  background: rgba(255, 140, 50, 0.08);
+}
+.memorey-brief__format-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--memorey-text);
+}
+.memorey-brief__format-sub {
+  font-size: 9px;
+  color: var(--memorey-text-secondary);
+}
+.memorey-brief__select {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--memorey-border);
+  border-radius: 6px;
+  background: var(--memorey-background);
+  color: var(--memorey-text);
+  font-size: 12px;
+  outline: none;
+}
+.memorey-brief__select:focus {
+  border-color: var(--memorey-orange);
+}
+.memorey-brief__vault-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.memorey-brief__vault-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  opacity: 0.45;
+  font-size: 12px;
+  color: var(--memorey-text);
+}
+.memorey-brief__vault-item--on {
+  opacity: 1;
+  background: var(--memorey-surface);
+}
+.memorey-brief__vault-item input[type="checkbox"] {
+  flex-shrink: 0;
+}
+.memorey-brief__vault-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.memorey-brief__vault-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.memorey-brief__copy-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--memorey-orange);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.memorey-brief__copy-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.memorey-brief__copy-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.memorey-brief__copy-btn--copied {
+  background: #22c55e;
+}
+.memorey-brief__stats {
+  font-size: 10px;
+  color: var(--memorey-text-secondary);
+  text-align: center;
+}
+.memorey-brief__output {
+  border: 1px solid var(--memorey-border);
+  border-radius: 8px;
+  background: var(--memorey-surface);
+  min-height: 120px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+.memorey-brief__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 30px;
+  color: var(--memorey-text-secondary);
+  font-size: 12px;
+}
+.memorey-brief__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  color: var(--memorey-text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+.memorey-brief__content {
+  margin: 0;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--memorey-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

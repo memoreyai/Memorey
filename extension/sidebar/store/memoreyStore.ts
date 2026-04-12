@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, type Dispatch, type ReactNode } from "react";
 import type { MemoryNode, VaultDefinition, MemoryEdge, Canvas, PendingProposal, Stats } from "../types";
 
-export type View = "dashboard" | "nodes" | "node-detail" | "pending" | "kanban" | "canvas" | "conflicts" | "import" | "settings";
+export type View = "dashboard" | "nodes" | "node-detail" | "pending" | "kanban" | "canvas" | "conflicts" | "brief" | "import" | "settings";
 
 export interface MemoreyState {
   currentView: View;

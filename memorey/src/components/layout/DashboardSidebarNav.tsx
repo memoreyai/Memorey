@@ -10,6 +10,7 @@ import {
   Search,
   MessageSquarePlus,
   AlertTriangle,
+  Sparkles,
   Settings,
   Eye,
   EyeOff,
@@ -195,6 +196,8 @@ export function DashboardSidebarNav({
     isMasterView && pathname.startsWith("/dashboard/kanban");
   const masterConflictsActive =
     isMasterView && pathname.startsWith("/dashboard/conflicts");
+  const masterBriefActive =
+    isMasterView && pathname.startsWith("/dashboard/brief");
 
   function goMasterGraph() {
     enterMasterView();
@@ -211,6 +214,11 @@ export function DashboardSidebarNav({
   function goMasterConflicts() {
     enterMasterView();
     router.push("/dashboard/conflicts");
+  }
+
+  function goMasterBrief() {
+    enterMasterView();
+    router.push("/dashboard/brief");
   }
 
   async function onEyeClick(e: React.MouseEvent, canvasId: string) {
@@ -404,6 +412,8 @@ export function DashboardSidebarNav({
                       isActiveCanvas && pathname.startsWith("/dashboard/capture");
                     const conflictsActiveCollapsed =
                       isActiveCanvas && pathname.startsWith("/dashboard/conflicts");
+                    const briefActiveCollapsed =
+                      isActiveCanvas && pathname.startsWith("/dashboard/brief");
                     return (
                       <>
                         <Link
@@ -495,6 +505,24 @@ export function DashboardSidebarNav({
                         >
                           <AlertTriangle size={14} strokeWidth={1.75} />
                           Conflicts
+                        </Link>
+                        <Link
+                          href="/dashboard/brief"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            void goCanvasSubpage(c.id, "/dashboard/brief");
+                          }}
+                          className={subLinkClass(briefActiveCollapsed)}
+                          style={subLinkStyle(briefActiveCollapsed)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "var(--hover-bg)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                        >
+                          <Sparkles size={14} strokeWidth={1.75} />
+                          Brief AI
                         </Link>
                       </>
                     );
@@ -595,6 +623,24 @@ export function DashboardSidebarNav({
               <AlertTriangle size={14} strokeWidth={1.75} />
               Conflicts
             </Link>
+            <Link
+              href="/dashboard/brief"
+              onClick={(e) => {
+                e.preventDefault();
+                goMasterBrief();
+              }}
+              className={subLinkClass(masterBriefActive)}
+              style={subLinkStyle(masterBriefActive)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--hover-bg)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+              }}
+            >
+              <Sparkles size={14} strokeWidth={1.75} />
+              Brief AI
+            </Link>
           </div>
         </SidebarDropdown>
       </div>
@@ -620,6 +666,8 @@ export function DashboardSidebarNav({
             isActiveCanvas && pathname.startsWith("/dashboard/capture");
           const conflictsActive =
             isActiveCanvas && pathname.startsWith("/dashboard/conflicts");
+          const briefActive =
+            isActiveCanvas && pathname.startsWith("/dashboard/brief");
 
           return (
             <div
@@ -822,6 +870,24 @@ export function DashboardSidebarNav({
                   >
                     <AlertTriangle size={14} strokeWidth={1.75} />
                     Conflicts
+                  </Link>
+                  <Link
+                    href="/dashboard/brief"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      void goCanvasSubpage(c.id, "/dashboard/brief");
+                    }}
+                    className={subLinkClass(briefActive)}
+                    style={subLinkStyle(briefActive)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "var(--hover-bg)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <Sparkles size={14} strokeWidth={1.75} />
+                    Brief AI
                   </Link>
                 </div>
               </SidebarDropdown>
