@@ -15,7 +15,6 @@ import {
   Gauge,
   ArrowRightLeft,
   Save,
-  XCircle,
   MessageSquare,
   Globe,
   Puzzle,
@@ -305,10 +304,9 @@ function AttachmentCard({
 
 interface HistoryEntry {
   id: string;
-  field: string;
-  old_value: string | null;
-  new_value: string | null;
-  change_summary: string | null;
+  type: "content" | "title" | "confidence" | "vault" | "merged" | "deactivated" | "restored" | "edit";
+  label: string;
+  details: string | null;
   created_at: string;
 }
 
@@ -336,10 +334,42 @@ function formatRelativeTime(iso: string): string {
   return `${Math.floor(diffMonth / 12)}y ago`;
 }
 
-function historyFieldIcon(field: string) {
-  if (field === "confidence") return <Gauge size={10} />;
-  if (field === "vault") return <ArrowRightLeft size={10} />;
-  return <Pencil size={10} />;
+function formatHistoryDate(iso: string): string {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }) +
+    " at " +
+    d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+  );
+}
+
+function historyTypeEmoji(type: string): string {
+  switch (type) {
+    case "content":
+    case "title":
+    case "edit":
+      return "📝";
+    case "confidence":
+      return "📊";
+    case "vault":
+      return "📂";
+    case "merged":
+      return "🔀";
+    case "deactivated":
+      return "🗑️";
+    case "restored":
+      return "↩️";
+    default:
+      return "📝";
+  }
 }
 
 function confidenceColor(c: number): string {
@@ -357,61 +387,48 @@ function mapHistoryRows(rows: Record<string, unknown>[]): HistoryEntry[] {
     const newTitle = r.new_title as string;
     const oldVal = r.old_value as string | null;
     const newVal = r.new_value as string;
-    const changeSummary = (r.change_summary as string) ?? null;
+    const summary = (r.change_summary as string) ?? null;
 
-    if (changeSummary?.includes("Confidence")) {
+    if (summary?.includes("Confidence")) {
+      const match = summary.match(/([\d.]+)\s*→\s*([\d.]+)/);
       out.push({
-        id: `${id}-confidence`,
-        field: "confidence",
-        old_value: null,
-        new_value: null,
-        change_summary: changeSummary,
+        id,
+        type: "confidence",
+        label: "Confidence changed",
+        details: match ? `From ${match[1]} to ${match[2]}` : summary,
         created_at,
       });
-    } else if (changeSummary?.includes("Vault")) {
+    } else if (summary?.includes("Vault changed")) {
+      const parts = summary.replace("Vault changed: ", "");
       out.push({
-        id: `${id}-vault`,
-        field: "vault",
-        old_value: null,
-        new_value: null,
-        change_summary: changeSummary,
+        id,
+        type: "vault",
+        label: "Vault changed",
+        details: parts ? `From ${parts.replace(" → ", " to ")}` : null,
         created_at,
       });
+    } else if (summary?.includes("restored")) {
+      out.push({ id, type: "restored", label: "Restored to previous version", details: null, created_at });
+    } else if (summary?.toLowerCase().includes("merge") || summary?.toLowerCase().includes("conflict")) {
+      out.push({ id, type: "merged", label: "Merged from conflict resolution", details: summary, created_at });
+    } else if (summary?.toLowerCase().includes("deactivat")) {
+      out.push({ id, type: "deactivated", label: "Deactivated", details: summary, created_at });
     } else {
-      if (oldTitle !== null && oldTitle !== newTitle) {
-        out.push({
-          id: `${id}-title`,
-          field: "title",
-          old_value: oldTitle,
-          new_value: newTitle,
-          change_summary: changeSummary,
-          created_at,
-        });
-      }
-      if (oldVal !== null && oldVal !== newVal) {
-        out.push({
-          id: `${id}-value`,
-          field: "value",
-          old_value: oldVal,
-          new_value: newVal,
-          change_summary: changeSummary,
-          created_at,
-        });
-      }
-    }
+      const titleChanged = oldTitle !== null && oldTitle !== newTitle;
+      const valueChanged = oldVal !== null && oldVal !== newVal;
 
-    if (out.length === 0 || out[out.length - 1]?.created_at !== created_at) {
-      if (changeSummary && !changeSummary.includes("Confidence") && !changeSummary.includes("Vault")) {
-        if (oldTitle === newTitle && oldVal === newVal) {
-          out.push({
-            id: `${id}-summary`,
-            field: "edit",
-            old_value: null,
-            new_value: null,
-            change_summary: changeSummary,
-            created_at,
-          });
-        }
+      if (titleChanged && valueChanged) {
+        out.push({ id, type: "content", label: "Title and content updated", details: null, created_at });
+      } else if (titleChanged) {
+        const detail =
+          oldTitle && newTitle
+            ? `"${oldTitle.slice(0, 50)}" → "${newTitle.slice(0, 50)}"`
+            : null;
+        out.push({ id, type: "title", label: "Title changed", details: detail, created_at });
+      } else if (valueChanged) {
+        out.push({ id, type: "content", label: "Content updated", details: null, created_at });
+      } else if (summary) {
+        out.push({ id, type: "edit", label: summary, details: null, created_at });
       }
     }
   }
@@ -1125,8 +1142,6 @@ function MemoryNodeDetailSheet({
   const [editTitle, setEditTitle] = useState("");
   const [editValue, setEditValue] = useState("");
   const [editVaultId, setEditVaultId] = useState("");
-  const [title, setTitle] = useState("");
-  const [value, setValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attUrl, setAttUrl] = useState("");
@@ -1152,8 +1167,6 @@ function MemoryNodeDetailSheet({
 
   useEffect(() => {
     if (!node) return;
-    setTitle(node.title ?? "");
-    setValue(node.value ?? "");
     setLocalConfidence(node.confidence ?? 1);
     setShowAttInput(false);
     setAttUrl("");
@@ -1363,17 +1376,17 @@ function MemoryNodeDetailSheet({
     try {
       if (editTitle !== (node.title ?? "")) {
         await saveField("title", editTitle);
-        setTitle(editTitle);
       }
       if (editValue !== (node.value ?? "")) {
         await saveField("value", editValue);
-        setValue(editValue);
       }
       if (editVaultId !== node.vaultId) {
         await saveVaultChange(editVaultId);
       }
       setIsEditing(false);
       toast.success("Changes saved");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save changes");
     } finally {
       setIsSaving(false);
     }
@@ -1556,6 +1569,8 @@ function MemoryNodeDetailSheet({
 
   const confPct = Math.round(localConfidence * 100);
   const confColor = confidenceColor(localConfidence);
+  const contentValue = isEditing ? editValue : (node.value ?? "");
+  const contentRows = Math.max(4, contentValue.split("\n").length + 1);
 
   return (
     <>
@@ -1585,10 +1600,10 @@ function MemoryNodeDetailSheet({
           overflow: "hidden",
         }}
       >
-        {/* ── Header ── */}
+        {/* ── Header: Title + Close ── */}
         <div
           style={{
-            padding: "14px 20px 10px",
+            padding: "16px 20px 12px",
             borderBottom: "1px solid var(--border)",
             background: "var(--bg3)",
             flexShrink: 0,
@@ -1597,116 +1612,52 @@ function MemoryNodeDetailSheet({
             zIndex: 2,
           }}
         >
-          {node?.canvasName ? (
+          {node.canvasName && (
             <div
               style={{
-                fontSize: 14,
-                fontWeight: 600,
+                fontSize: 11,
+                fontWeight: 500,
                 opacity: 0.5,
                 color: "var(--text2)",
-                marginBottom: 8,
+                marginBottom: 6,
               }}
             >
-              {(node.canvasEmoji ?? "🧠")} {node.canvasName}
+              {node.canvasEmoji ?? "🧠"} {node.canvasName}
             </div>
-          ) : null}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 8,
-            }}
-          >
+          )}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
             {isEditing ? (
-              <select
-                value={editVaultId}
-                onChange={(e) => setEditVaultId(e.target.value)}
+              <input
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                autoFocus
                 style={{
-                  padding: "2px 8px",
+                  flex: 1,
                   background: "var(--bg2)",
                   border: "1px solid var(--orange)",
-                  borderRadius: 100,
-                  fontSize: 10,
+                  borderRadius: "var(--r-md)",
+                  fontSize: 16,
                   fontWeight: 600,
                   color: "var(--text)",
                   outline: "none",
-                  cursor: "pointer",
+                  fontFamily: "var(--font-sans)",
+                  padding: "6px 10px",
+                  boxSizing: "border-box",
                 }}
-              >
-                {activeVaults.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            ) : vault ? (
-              <span
+              />
+            ) : (
+              <div
                 style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "2px 8px",
-                  background: vault.color + "22",
-                  border: `1px solid ${vault.color}44`,
-                  borderRadius: 100,
-                  fontSize: 10,
+                  flex: 1,
+                  fontSize: 16,
                   fontWeight: 600,
-                  color: vault.color,
-                  flexShrink: 0,
+                  color: "var(--text)",
+                  lineHeight: 1.4,
+                  wordBreak: "break-word",
                 }}
               >
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    background: vault.color,
-                  }}
-                />
-                {vault.name}
-              </span>
-            ) : null}
-            <div style={{ flex: 1 }} />
-            {isSaving && (
-              <span style={{ fontSize: 9, color: "var(--muted)" }}>
-                saving…
-              </span>
-            )}
-            {!isEditing && (
-              <button
-                type="button"
-                onClick={startEditing}
-                title="Edit memory"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                  background: "var(--bg2)",
-                  border: "1px solid var(--border)",
-                  cursor: "pointer",
-                  color: "var(--text2)",
-                  fontSize: 11,
-                  fontWeight: 500,
-                  flexShrink: 0,
-                  transition: "color 0.15s, border-color 0.15s, background 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--orange)";
-                  e.currentTarget.style.borderColor = "var(--orange)";
-                  e.currentTarget.style.background = "var(--orange)" + "11";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text2)";
-                  e.currentTarget.style.borderColor = "var(--border)";
-                  e.currentTarget.style.background = "var(--bg2)";
-                }}
-              >
-                <Pencil size={11} />
-                Edit
-              </button>
+                {node.title ?? "Untitled"}
+              </div>
             )}
             <button
               type="button"
@@ -1716,8 +1667,8 @@ function MemoryNodeDetailSheet({
                 clearHistoryOpenForNode();
               }}
               style={{
-                width: 24,
-                height: 24,
+                width: 28,
+                height: 28,
                 borderRadius: 6,
                 background: "none",
                 border: "none",
@@ -1727,111 +1678,116 @@ function MemoryNodeDetailSheet({
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
+                marginTop: 2,
               }}
             >
-              <X size={13} />
+              <X size={14} />
             </button>
           </div>
-
-          {/* ── Title ── */}
-          {isEditing ? (
-            <input
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              style={{
-                width: "100%",
-                background: "var(--bg2)",
-                border: "1px solid var(--orange)",
-                borderRadius: "var(--r-md)",
-                fontSize: 15,
-                fontWeight: 600,
-                color: "var(--text)",
-                outline: "none",
-                fontFamily: "var(--font-sans)",
-                padding: "6px 10px",
-                boxSizing: "border-box",
-              }}
-            />
-          ) : (
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={() => void saveField("title", title)}
-              onKeyDown={(e) =>
-                e.key === "Enter" && e.currentTarget.blur()
-              }
-              style={{
-                width: "100%",
-                background: "none",
-                border: "none",
-                fontSize: 15,
-                fontWeight: 600,
-                color: "var(--text)",
-                outline: "none",
-                fontFamily: "var(--font-sans)",
-                padding: 0,
-              }}
-            />
-          )}
-
-          {/* ── Edit mode action bar ── */}
-          {isEditing && (
-            <div
-              style={{
-                display: "flex",
-                gap: 6,
-                marginTop: 8,
-                justifyContent: "flex-end",
-              }}
-            >
-              <button
-                type="button"
-                onClick={cancelEditing}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "4px 12px",
-                  background: "var(--bg2)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "var(--text2)",
-                  cursor: "pointer",
-                }}
-              >
-                <XCircle size={11} />
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveEdits()}
-                disabled={isSaving}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "4px 12px",
-                  background: "var(--orange)",
-                  border: "none",
-                  borderRadius: 6,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#fff",
-                  cursor: "pointer",
-                  opacity: isSaving ? 0.5 : 1,
-                }}
-              >
-                <Save size={11} />
-                {isSaving ? "Saving…" : "Save"}
-              </button>
-            </div>
-          )}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
-          {/* ── Description / Content ── */}
+          {/* ── Meta: Vault + Source + Dates ── */}
+          <div
+            style={{
+              padding: "12px 20px",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {isEditing ? (
+                <select
+                  value={editVaultId}
+                  onChange={(e) => setEditVaultId(e.target.value)}
+                  style={{
+                    padding: "3px 10px",
+                    background: "var(--bg2)",
+                    border: "1px solid var(--orange)",
+                    borderRadius: 100,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: "var(--text)",
+                    outline: "none",
+                    cursor: "pointer",
+                  }}
+                >
+                  {activeVaults.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              ) : vault ? (
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "3px 10px",
+                    background: vault.color + "22",
+                    border: `1px solid ${vault.color}44`,
+                    borderRadius: 100,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: vault.color,
+                    flexShrink: 0,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: "50%",
+                      background: vault.color,
+                    }}
+                  />
+                  {vault.name}
+                </span>
+              ) : null}
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "3px 8px",
+                  background: "var(--bg2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 100,
+                  fontSize: 10,
+                  color: "var(--text2)",
+                }}
+              >
+                {sourceIcon(node.source)}
+                {sourceLabel(node.source)}
+              </span>
+            </div>
+            <div style={{ fontSize: 11, color: "var(--muted)" }}>
+              <span style={{ fontWeight: 500 }}>Created </span>
+              {node.createdAt ? formatHistoryDate(node.createdAt) : "—"}
+            </div>
+            {node.updatedAt && node.updatedAt !== node.createdAt && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: "var(--muted)",
+                  marginTop: 2,
+                }}
+              >
+                <span style={{ fontWeight: 500 }}>Updated </span>
+                {formatHistoryDate(node.updatedAt)}
+              </div>
+            )}
+          </div>
+
+          {/* ── Content / Description ── */}
           <div
             style={{
               padding: "12px 20px",
@@ -1842,7 +1798,7 @@ function MemoryNodeDetailSheet({
               style={{
                 display: "flex",
                 justifyContent: "space-between",
-                marginBottom: 5,
+                marginBottom: 6,
               }}
             >
               <span
@@ -1862,56 +1818,37 @@ function MemoryNodeDetailSheet({
                 </span>
               )}
             </div>
-            {isEditing ? (
-              <textarea
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value.slice(0, 500))}
-                maxLength={500}
-                rows={4}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  background: "var(--bg2)",
-                  border: "1px solid var(--orange)",
-                  borderRadius: "var(--r-md)",
-                  padding: "8px 10px",
-                  color: "var(--text)",
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  resize: "vertical",
-                  outline: "none",
-                  fontFamily: "var(--font-sans)",
-                }}
-              />
-            ) : (
-              <textarea
-                value={value}
-                onChange={(e) => setValue(e.target.value.slice(0, 500))}
-                maxLength={500}
-                rows={3}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  background: "var(--bg2)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--r-md)",
-                  padding: "8px 10px",
-                  color: "var(--text)",
-                  fontSize: 13,
-                  lineHeight: 1.6,
-                  resize: "vertical",
-                  outline: "none",
-                  fontFamily: "var(--font-sans)",
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = "var(--orange)";
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = "var(--border)";
-                  void saveField("value", value);
-                }}
-              />
-            )}
+            <textarea
+              value={contentValue}
+              readOnly={!isEditing}
+              onClick={() => {
+                if (!isEditing) startEditing();
+              }}
+              onChange={(e) => {
+                if (isEditing) setEditValue(e.target.value.slice(0, 500));
+              }}
+              maxLength={500}
+              rows={contentRows}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                background: isEditing ? "var(--bg2)" : "transparent",
+                border: isEditing
+                  ? "1px solid var(--orange)"
+                  : "1px solid transparent",
+                borderRadius: "var(--r-md)",
+                padding: isEditing ? "8px 10px" : "4px 0",
+                color: "var(--text)",
+                fontSize: 13,
+                lineHeight: 1.6,
+                resize: isEditing ? "vertical" : "none",
+                outline: "none",
+                fontFamily: "var(--font-sans)",
+                cursor: isEditing ? "text" : "pointer",
+                transition:
+                  "border-color 0.15s, background 0.15s, padding 0.15s",
+              }}
+            />
           </div>
 
           {/* ── Confidence Meter ── */}
@@ -1936,7 +1873,9 @@ function MemoryNodeDetailSheet({
                 max="1"
                 step="0.01"
                 value={localConfidence}
-                onChange={(e) => handleConfidenceChange(parseFloat(e.target.value))}
+                onChange={(e) =>
+                  handleConfidenceChange(parseFloat(e.target.value))
+                }
                 style={{
                   flex: 1,
                   height: 6,
@@ -1977,195 +1916,97 @@ function MemoryNodeDetailSheet({
             </div>
           </div>
 
-          {/* ── Card appearance ── */}
+          {/* ── Edit / Save section ── */}
           <div
             style={{
               padding: "12px 20px",
               borderBottom: "1px solid var(--border)",
             }}
           >
-            <SectionLabel icon={<Palette size={11} />} text="Card appearance" />
-
-            <ColorRow
-              label="Accent colour"
-              presets={ACCENT_PRESETS}
-              currentValue={node.customAccentColor}
-              onSelect={(c) => void saveColor("custom_accent_color", c)}
-              onReset={() => void saveColor("custom_accent_color", null)}
-            />
-
-            <ColorRow
-              label="Background colour"
-              presets={bgPresets}
-              currentValue={node.customBgColor}
-              onSelect={(c) => void saveColor("custom_bg_color", c)}
-              onReset={() => void saveColor("custom_bg_color", null)}
-              showBorder
-            />
-
-            <ColorRow
-              label="Text colour"
-              presets={TEXT_PRESETS}
-              currentValue={node.customTextColor}
-              onSelect={(c) => void saveColor("custom_text_color", c)}
-              onReset={() => void saveColor("custom_text_color", null)}
-            />
-          </div>
-
-          {/* ── Meta Information ── */}
-          <div
-            style={{
-              padding: "10px 20px",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <SectionLabel icon={<Globe size={11} />} text="Details" />
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              <div>
-                <div
+            {!isEditing ? (
+              <button
+                type="button"
+                onClick={startEditing}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  width: "100%",
+                  padding: "9px 12px",
+                  background: "var(--bg2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-md)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--text2)",
+                  transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "var(--orange)";
+                  e.currentTarget.style.color = "var(--orange)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border)";
+                  e.currentTarget.style.color = "var(--text2)";
+                }}
+              >
+                <Pencil size={12} />
+                Edit Node
+              </button>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => void saveEdits()}
+                  disabled={isSaving}
                   style={{
-                    fontSize: 9,
-                    color: "var(--muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.07em",
-                    marginBottom: 2,
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 5,
+                    padding: "9px 12px",
+                    background: "#FF6600",
+                    border: "none",
+                    borderRadius: "var(--r-md)",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#fff",
+                    opacity: isSaving ? 0.6 : 1,
+                    transition: "opacity 0.15s",
                   }}
                 >
-                  Source
-                </div>
-                <div
+                  <Save size={12} />
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEditing}
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
+                    justifyContent: "center",
+                    gap: 5,
+                    padding: "9px 16px",
+                    background: "var(--bg2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--r-md)",
+                    cursor: "pointer",
                     fontSize: 12,
+                    fontWeight: 500,
                     color: "var(--text2)",
                   }}
                 >
-                  {sourceIcon(node.source)}
-                  {sourceLabel(node.source)}
-                </div>
+                  Cancel
+                </button>
               </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 9,
-                    color: "var(--muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.07em",
-                    marginBottom: 2,
-                  }}
-                >
-                  Created
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text2)" }}>
-                  {node.createdAt
-                    ? new Date(node.createdAt).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })
-                    : "—"}
-                </div>
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 9,
-                    color: "var(--muted)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.07em",
-                    marginBottom: 2,
-                  }}
-                >
-                  Updated
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text2)" }}>
-                  {node.updatedAt
-                    ? formatRelativeTime(node.updatedAt)
-                    : "—"}
-                </div>
-              </div>
-              {node.canvasName && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: 9,
-                      color: "var(--muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.07em",
-                      marginBottom: 2,
-                    }}
-                  >
-                    Canvas
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text2)" }}>
-                    {node.canvasEmoji ?? "🧠"} {node.canvasName}
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
           </div>
 
-          {node.kanbanStatus && (
-            <div
-              style={{
-                padding: "10px 20px",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <SectionLabel
-                icon={<span style={{ fontSize: 11 }}>📋</span>}
-                text="Kanban"
-              />
-              <div style={{ display: "flex", gap: 5 }}>
-                {(["todo", "doing", "done"] as const).map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={async () => {
-                      if (!selectedNodeId || !userId) return;
-                      const supabase = createClient();
-                      await supabase
-                        .from("memory_nodes")
-                        .update({ kanban_status: status })
-                        .eq("id", selectedNodeId)
-                        .eq("user_id", userId);
-                      useGraphStore
-                        .getState()
-                        .updateNode(selectedNodeId, { kanbanStatus: status });
-                    }}
-                    style={{
-                      padding: "3px 9px",
-                      borderRadius: 100,
-                      fontSize: 11,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      background:
-                        node.kanbanStatus === status
-                          ? accentColor + "22"
-                          : "var(--bg2)",
-                      border: `1px solid ${
-                        node.kanbanStatus === status
-                          ? accentColor + "66"
-                          : "var(--border)"
-                      }`,
-                      color:
-                        node.kanbanStatus === status
-                          ? accentColor
-                          : "var(--text2)",
-                    }}
-                  >
-                    {status === "todo"
-                      ? "📋 To-do"
-                      : status === "doing"
-                        ? "⚡ Doing"
-                        : "✅ Done"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
+          {/* ── Connections ── */}
           {connNodes.length > 0 && (
             <div
               style={{
@@ -2271,6 +2112,68 @@ function MemoryNodeDetailSheet({
             </div>
           )}
 
+          {/* ── Kanban ── */}
+          {node.kanbanStatus && (
+            <div
+              style={{
+                padding: "10px 20px",
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <SectionLabel
+                icon={<span style={{ fontSize: 11 }}>📋</span>}
+                text="Kanban"
+              />
+              <div style={{ display: "flex", gap: 5 }}>
+                {(["todo", "doing", "done"] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={async () => {
+                      if (!selectedNodeId || !userId) return;
+                      const supabase = createClient();
+                      await supabase
+                        .from("memory_nodes")
+                        .update({ kanban_status: status })
+                        .eq("id", selectedNodeId)
+                        .eq("user_id", userId);
+                      useGraphStore
+                        .getState()
+                        .updateNode(selectedNodeId, { kanbanStatus: status });
+                    }}
+                    style={{
+                      padding: "3px 9px",
+                      borderRadius: 100,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      background:
+                        node.kanbanStatus === status
+                          ? accentColor + "22"
+                          : "var(--bg2)",
+                      border: `1px solid ${
+                        node.kanbanStatus === status
+                          ? accentColor + "66"
+                          : "var(--border)"
+                      }`,
+                      color:
+                        node.kanbanStatus === status
+                          ? accentColor
+                          : "var(--text2)",
+                    }}
+                  >
+                    {status === "todo"
+                      ? "📋 To-do"
+                      : status === "doing"
+                        ? "⚡ Doing"
+                        : "✅ Done"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Attachments ── */}
           <div
             style={{
               padding: "10px 20px",
@@ -2498,191 +2401,158 @@ function MemoryNodeDetailSheet({
             )}
           </div>
 
-          {/* ── History Timeline ── */}
+          {/* ── Card appearance ── */}
           <div
             style={{
-              padding: "10px 20px",
+              padding: "12px 20px",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            <SectionLabel icon={<Palette size={11} />} text="Card appearance" />
+
+            <ColorRow
+              label="Accent colour"
+              presets={ACCENT_PRESETS}
+              currentValue={node.customAccentColor}
+              onSelect={(c) => void saveColor("custom_accent_color", c)}
+              onReset={() => void saveColor("custom_accent_color", null)}
+            />
+
+            <ColorRow
+              label="Background colour"
+              presets={bgPresets}
+              currentValue={node.customBgColor}
+              onSelect={(c) => void saveColor("custom_bg_color", c)}
+              onReset={() => void saveColor("custom_bg_color", null)}
+              showBorder
+            />
+
+            <ColorRow
+              label="Text colour"
+              presets={TEXT_PRESETS}
+              currentValue={node.customTextColor}
+              onSelect={(c) => void saveColor("custom_text_color", c)}
+              onReset={() => void saveColor("custom_text_color", null)}
+            />
+          </div>
+
+          {/* ── History ── */}
+          <div
+            style={{
+              padding: "12px 20px",
               borderBottom: "1px solid var(--border)",
             }}
           >
             <SectionLabel icon={<Clock size={11} />} text="History" />
 
-            {history.length === 0 ? (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "var(--faint)",
-                  fontStyle: "italic",
-                }}
-              >
-                No changes yet
-              </div>
-            ) : (
-              <div style={{ position: "relative", paddingLeft: 16 }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 12,
+              }}
+            >
+              {history.map((entry) => (
                 <div
+                  key={entry.id}
                   style={{
-                    position: "absolute",
-                    left: 5,
-                    top: 4,
-                    bottom: 4,
-                    width: 1,
-                    background: "var(--border)",
+                    background: "var(--bg2)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "var(--r-md)",
+                    padding: "10px 12px",
                   }}
-                />
-                {history.map((entry) => (
+                >
                   <div
-                    key={entry.id}
                     style={{
-                      position: "relative",
-                      marginBottom: 10,
-                      paddingLeft: 10,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      marginBottom: 4,
                     }}
                   >
-                    <div
+                    <span style={{ fontSize: 13, flexShrink: 0 }}>
+                      {historyTypeEmoji(entry.type)}
+                    </span>
+                    <span
                       style={{
-                        position: "absolute",
-                        left: -13,
-                        top: 3,
-                        width: 18,
-                        height: 18,
-                        borderRadius: "50%",
-                        background: "var(--bg3)",
-                        border: "1px solid var(--border)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "var(--orange)",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: "var(--text)",
                       }}
                     >
-                      {historyFieldIcon(entry.field)}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        marginBottom: 3,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 600,
-                          color: "var(--text2)",
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        {entry.change_summary ?? `${entry.field} edited`}
-                      </span>
-                      <span style={{ fontSize: 9, color: "var(--faint)" }}>
-                        {formatRelativeTime(entry.created_at)}
-                      </span>
-                    </div>
-
-                    {entry.field === "confidence" && entry.change_summary && (
-                      <div style={{ fontSize: 11, color: "var(--text2)" }}>
-                        {entry.change_summary}
-                      </div>
-                    )}
-
-                    {entry.field === "vault" && entry.change_summary && (
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "var(--text2)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <ArrowRightLeft size={10} style={{ color: "var(--muted)" }} />
-                        {entry.change_summary}
-                      </div>
-                    )}
-
-                    {(entry.field === "title" || entry.field === "value") && (
-                      <>
-                        {entry.old_value && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: "#E05C5C",
-                              textDecoration: "line-through",
-                              opacity: 0.7,
-                              marginBottom: 1,
-                            }}
-                          >
-                            {String(entry.old_value).slice(0, 100)}
-                          </div>
-                        )}
-                        {entry.new_value && (
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: "#5DCAA5",
-                              marginBottom: 3,
-                            }}
-                          >
-                            {String(entry.new_value).slice(0, 100)}
-                          </div>
-                        )}
-                        {entry.old_value && (
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              if (!selectedNodeId || !userId || !entry.old_value || !node)
-                                return;
-                              const supabase = createClient();
-                              const field = entry.field as "title" | "value";
-                              const currentTitle = node.title ?? "";
-                              const currentValue = node.value ?? "";
-                              const { error } = await supabase
-                                .from("memory_nodes")
-                                .update({ [field]: entry.old_value })
-                                .eq("id", selectedNodeId)
-                                .eq("user_id", userId);
-                              if (error) {
-                                toast.error("Failed to restore");
-                                return;
-                              }
-                              await supabase.from("node_history").insert({
-                                node_id: selectedNodeId,
-                                user_id: userId,
-                                old_title: currentTitle,
-                                new_title: field === "title" ? entry.old_value : currentTitle,
-                                old_value: currentValue,
-                                new_value: field === "value" ? entry.old_value : currentValue,
-                                change_summary: `${field} restored to previous version`,
-                                triggered_by: "user",
-                              });
-                              useGraphStore.getState().updateNode(selectedNodeId, {
-                                [field]: entry.old_value,
-                              });
-                              if (field === "title") setTitle(entry.old_value);
-                              if (field === "value") setValue(entry.old_value);
-                              setHistoryKey((k) => k + 1);
-                              toast.success("Version restored");
-                            }}
-                            style={{
-                              fontSize: 10,
-                              color: "var(--orange)",
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 0,
-                            }}
-                          >
-                            ↩ Restore
-                          </button>
-                        )}
-                      </>
-                    )}
+                      {entry.label}
+                    </span>
                   </div>
-                ))}
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--muted)",
+                      marginBottom: entry.details ? 6 : 0,
+                    }}
+                  >
+                    {formatHistoryDate(entry.created_at)}
+                  </div>
+                  {entry.details && (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "var(--text2)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {entry.details}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Creation event — always at bottom */}
+              <div
+                style={{
+                  background: "var(--bg2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-md)",
+                  padding: "10px 12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 4,
+                  }}
+                >
+                  <span style={{ fontSize: 13 }}>✨</span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: "var(--text)",
+                    }}
+                  >
+                    Created
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--muted)",
+                    marginBottom: 6,
+                  }}
+                >
+                  {node.createdAt
+                    ? formatHistoryDate(node.createdAt)
+                    : "Unknown"}
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text2)" }}>
+                  Source: {sourceLabel(node.source)}
+                </div>
               </div>
-            )}
+            </div>
           </div>
 
+          {/* ── Delete ── */}
           <div style={{ padding: "12px 20px" }}>
             <button
               type="button"
