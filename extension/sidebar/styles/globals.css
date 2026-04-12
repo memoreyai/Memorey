@@ -91,20 +91,27 @@ body {
   font-weight: 600;
 }
 
-.memorey-header__settings {
+.memorey-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memorey-header__icon-btn {
   background: none;
   border: none;
   cursor: pointer;
   color: var(--memorey-text-secondary);
-  padding: 4px;
+  padding: 5px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.15s, color 0.15s;
 }
 
-.memorey-header__settings:hover,
-.memorey-header__settings--active {
+.memorey-header__icon-btn:hover,
+.memorey-header__icon-btn--active {
   background: var(--memorey-surface);
   color: var(--memorey-text);
 }

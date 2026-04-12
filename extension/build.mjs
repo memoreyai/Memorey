@@ -1,11 +1,26 @@
 import * as esbuild from "esbuild";
-import { cpSync, mkdirSync } from "fs";
+import { cpSync, mkdirSync, readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const outdir = resolve(__dirname, "dist");
 const isWatch = process.argv.includes("--watch");
+
+// Load env vars from memorey/.env.local if not already in process.env
+const envLocalPath = resolve(__dirname, "../memorey/.env.local");
+if (existsSync(envLocalPath)) {
+  const lines = readFileSync(envLocalPath, "utf-8").split("\n");
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eqIdx = trimmed.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = trimmed.slice(0, eqIdx).trim();
+    const value = trimmed.slice(eqIdx + 1).trim();
+    if (!process.env[key]) process.env[key] = value;
+  }
+}
 
 mkdirSync(outdir, { recursive: true });
 mkdirSync(resolve(outdir, "sidebar"), { recursive: true });
