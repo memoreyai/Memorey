@@ -19,6 +19,7 @@ export interface ReconciliationConfig {
   duplicateThreshold: number;
   conflictThreshold: number;
   autoApproveMinConfidence: number;
+  // Note: conflicts always require approval by design
   requireApprovalForConflicts: boolean;
 }
 

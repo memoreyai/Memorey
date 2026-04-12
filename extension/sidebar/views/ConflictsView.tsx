@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
 import type { ReconciliationAction } from "memorey-core";
-import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
+import { useMemoreyState } from "../store/memoreyStore";
 import { ConflictCard } from "../components/ConflictCard";
 import { useConflictResolver } from "../components/ConflictResolver";
 
@@ -8,7 +8,6 @@ type ConflictAction = ReconciliationAction & { type: "conflict" };
 
 export function ConflictsView() {
   const { pendingConflicts, allNodes } = useMemoreyState();
-  const dispatch = useMemoreyDispatch();
   const { resolve, toast } = useConflictResolver();
   const [animatingOut, setAnimatingOut] = useState<Set<string>>(new Set());
 

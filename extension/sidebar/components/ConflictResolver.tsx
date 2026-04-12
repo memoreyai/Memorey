@@ -1,7 +1,6 @@
 import { useCallback, useState } from "react";
 import type { ReconciliationAction } from "memorey-core";
 import { usePipeline } from "../hooks/usePipeline";
-import { useMemoreyDispatch } from "../store/memoreyStore";
 
 type ConflictAction = ReconciliationAction & { type: "conflict" };
 
@@ -13,7 +12,6 @@ interface ResolveRequest {
 
 export function useConflictResolver() {
   const { pipeline, refreshState, save } = usePipeline();
-  const dispatch = useMemoreyDispatch();
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {

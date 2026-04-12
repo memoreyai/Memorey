@@ -1,6 +1,5 @@
 import React, { useCallback } from "react";
 import type { MemoryNode } from "memorey-core";
-import { VaultBadge } from "./VaultBadge";
 import { StatusBadge } from "./StatusBadge";
 
 function confidenceColor(c: number): string {

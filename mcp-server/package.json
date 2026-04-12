@@ -2,7 +2,7 @@
   "name": "mcp-server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
@@ -14,7 +14,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.79.0",
     "@supabase/supabase-js": "^2.99.2",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { MemoreyPipeline } from "../pipeline/MemoreyPipeline.js";
 import { ExportEngine } from "./ExportEngine.js";
-import { ImportEngine } from "../import/ImportEngine.js";
 import type { ConversationExchange } from "../extraction/types.js";
 
 let tempDir: string;

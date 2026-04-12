@@ -9,7 +9,7 @@ import { NodeCard } from "../components/NodeCard";
 export function NodesListView() {
   const { allNodes, vaults } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
-  const { pipeline, refreshState, save } = usePipeline();
+  const { pipeline, save } = usePipeline();
 
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [searchQuery, setSearchQuery] = useState("");

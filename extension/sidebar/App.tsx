@@ -17,6 +17,7 @@ export function App() {
   const { currentView } = useMemoreyState();
   const { pipeline, isReady, error, refreshState, save } = useMemoreyEngine();
 
+  // useEvents runs side effects — return value intentionally unused
   useEvents(pipeline);
 
   if (error) {

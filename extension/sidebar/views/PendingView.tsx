@@ -4,7 +4,6 @@ import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
 import { usePipeline } from "../hooks/usePipeline";
 import { NodeCard } from "../components/NodeCard";
 import { VaultBadge } from "../components/VaultBadge";
-import { StatusBadge } from "../components/StatusBadge";
 import { formatRelativeTime } from "../utils/time";
 
 export function PendingView() {

@@ -3,7 +3,7 @@ import { useMemoreyState, useMemoreyDispatch } from "../store/memoreyStore";
 import { PLATFORM_ABBREV } from "../utils/colors";
 
 export function DashboardView() {
-  const { stats, recentFacts, pendingNodes, pendingConflicts, vaults } = useMemoreyState();
+  const { stats, recentFacts, pendingNodes, pendingConflicts } = useMemoreyState();
   const dispatch = useMemoreyDispatch();
 
   const totalFacts = stats?.totalFacts ?? 0;

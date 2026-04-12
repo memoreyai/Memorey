@@ -165,10 +165,8 @@ export class BriefingGenerator {
   private filterByVaults(
     nodes: MemoryNode[],
     config: BriefingConfig,
-    vaultDefs: VaultDefinition[]
+    _vaultDefs: VaultDefinition[]
   ): MemoryNode[] {
-    const knownVaultIds = new Set(vaultDefs.map((v) => v.id));
-
     // If includeVaults is non-empty, only include those vaults
     if (config.includeVaults.length > 0) {
       const includeSet = new Set(config.includeVaults);

@@ -9,6 +9,7 @@ export interface BriefingConfig {
   recencyBias: number;
   includeRelationships: boolean;
   includeChangeHistory: boolean;
+  // Reserved for future platform-specific formatting
   platform?: string;
   onlyApproved: boolean;
 }
