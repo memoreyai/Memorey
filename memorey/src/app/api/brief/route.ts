@@ -35,6 +35,12 @@ interface BriefEdge {
   strength: number | null;
 }
 
+/** Master / central identity — prepended regardless of vault filters when requested. */
+interface MasterBriefContext {
+  displayName: string;
+  bio: string;
+}
+
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get("Authorization");
   const bearerToken = authHeader?.startsWith("Bearer ")
@@ -70,13 +76,67 @@ export async function POST(req: NextRequest) {
     canvasId = null,
     dateFrom = null,
     dateTo = null,
+    includeMasterNode = true,
   } = body as {
     format?: BriefFormat;
     vaultIds?: string[];
     canvasId?: string | null;
     dateFrom?: string | null;
     dateTo?: string | null;
+    includeMasterNode?: boolean;
   };
+
+  const [{ data: profile }, { data: canvasRow }, { data: allVaults }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, display_name, master_node_bio")
+        .eq("id", userId)
+        .maybeSingle(),
+      canvasId
+        ? supabase
+            .from("canvases")
+            .select("name, master_node_bio")
+            .eq("id", canvasId)
+            .eq("user_id", userId)
+            .maybeSingle()
+        : Promise.resolve({ data: null as null }),
+      supabase
+        .from("category_vaults")
+        .select("id, name")
+        .eq("user_id", userId)
+        .eq("is_active", true),
+    ]);
+
+  const vaultNameMap = new Map(
+    (allVaults || []).map((v: { id: string; name: string }) => [v.id, v.name])
+  );
+
+  const selectedVaultNames =
+    vaultIds.length > 0
+      ? vaultIds
+          .map((id) => vaultNameMap.get(id))
+          .filter((n): n is string => typeof n === "string" && n.length > 0)
+      : [...vaultNameMap.values()];
+
+  const canvasName = canvasRow?.name?.trim() || "All Canvases";
+
+  const profileBio = (profile?.master_node_bio as string | null)?.trim() ?? "";
+  const canvasBio =
+    (canvasRow?.master_node_bio as string | null)?.trim() ?? "";
+  const resolvedMasterBio = canvasBio || profileBio;
+  const displayName =
+    (profile?.display_name as string | null)?.trim() ||
+    (profile?.full_name as string | null)?.trim() ||
+    "Me";
+
+  const masterForBrief: MasterBriefContext | null = includeMasterNode
+    ? { displayName, bio: resolvedMasterBio }
+    : null;
+
+  const masterNode = includeMasterNode
+    ? { name: displayName, bio: resolvedMasterBio }
+    : null;
 
   let query = supabase
     .from("memory_nodes")
@@ -94,23 +154,20 @@ export async function POST(req: NextRequest) {
 
   const { data: rawNodes } = await query;
   if (!rawNodes || rawNodes.length === 0) {
+    const emptyBrief = prependMasterToPlainMessage(
+      masterForBrief,
+      "No memories found matching the selected filters."
+    );
     return NextResponse.json({
-      brief: "No memories found matching the selected filters.",
+      brief: emptyBrief,
       format,
       nodeCount: 0,
       edgeCount: 0,
+      canvasName,
+      vaultNames: selectedVaultNames,
+      includedMasterNode: Boolean(masterNode),
     });
   }
-
-  const { data: allVaults } = await supabase
-    .from("category_vaults")
-    .select("id, name")
-    .eq("user_id", userId)
-    .eq("is_active", true);
-
-  const vaultNameMap = new Map(
-    (allVaults || []).map((v: { id: string; name: string }) => [v.id, v.name])
-  );
 
   const nodes: BriefNode[] = rawNodes.map((n: Record<string, unknown>) => {
     const cv = n.category_vaults as { name?: string } | null;
@@ -133,21 +190,54 @@ export async function POST(req: NextRequest) {
     .select("source_node_id, target_node_id, label, strength")
     .eq("user_id", userId);
 
-  const edges: BriefEdge[] = (edgeRows || []).filter(
+  const relevantEdges: BriefEdge[] = (edgeRows || []).filter(
     (e: Record<string, unknown>) =>
       nodeIds.has(e.source_node_id as string) &&
       nodeIds.has(e.target_node_id as string)
   ) as BriefEdge[];
 
   const nodeById = new Map(nodes.map((n) => [n.id, n]));
-  const brief = generateBrief(nodes, edges, nodeById, vaultNameMap, format);
+  const brief = generateBrief(
+    nodes,
+    relevantEdges,
+    nodeById,
+    vaultNameMap,
+    format,
+    masterForBrief
+  );
 
   return NextResponse.json({
     brief,
     format,
     nodeCount: nodes.length,
-    edgeCount: edges.length,
+    edgeCount: relevantEdges.length,
+    canvasName,
+    vaultNames: selectedVaultNames,
+    includedMasterNode: Boolean(masterNode),
   });
+}
+
+function prependMasterToPlainMessage(
+  master: MasterBriefContext | null,
+  message: string
+): string {
+  if (!master) return message;
+  const block = formatMasterBlockPlain(master);
+  return `${block}\n\n${message}`;
+}
+
+function formatMasterBlockPlain(master: MasterBriefContext): string {
+  return formatMasterBlockLines(master).join("\n");
+}
+
+function formatMasterBlockLines(master: MasterBriefContext): string[] {
+  const lines = [
+    "Master identity (central node on the user's memory canvas):",
+    "",
+    `Name: ${master.displayName}`,
+  ];
+  if (master.bio.trim()) lines.push(`Bio: ${master.bio.trim()}`);
+  return lines;
 }
 
 function generateBrief(
@@ -155,19 +245,20 @@ function generateBrief(
   edges: BriefEdge[],
   nodeById: Map<string, BriefNode>,
   vaultNameMap: Map<string, string>,
-  format: BriefFormat
+  format: BriefFormat,
+  master: MasterBriefContext | null
 ): string {
   switch (format) {
     case "system_prompt":
-      return generateSystemPrompt(nodes, edges, nodeById, vaultNameMap);
+      return generateSystemPrompt(nodes, edges, nodeById, vaultNameMap, master);
     case "markdown":
-      return generateMarkdown(nodes, edges, nodeById, vaultNameMap);
+      return generateMarkdown(nodes, edges, nodeById, vaultNameMap, master);
     case "json":
-      return generateJson(nodes, edges, nodeById, vaultNameMap);
+      return generateJson(nodes, edges, nodeById, vaultNameMap, master);
     case "toml":
-      return generateToml(nodes, edges, nodeById, vaultNameMap);
+      return generateToml(nodes, edges, nodeById, vaultNameMap, master);
     default:
-      return generateSystemPrompt(nodes, edges, nodeById, vaultNameMap);
+      return generateSystemPrompt(nodes, edges, nodeById, vaultNameMap, master);
   }
 }
 
@@ -223,12 +314,20 @@ function generateSystemPrompt(
   nodes: BriefNode[],
   edges: BriefEdge[],
   nodeById: Map<string, BriefNode>,
-  vaultNameMap: Map<string, string>
+  vaultNameMap: Map<string, string>,
+  master: MasterBriefContext | null
 ): string {
   const grouped = groupByVault(nodes);
   const vaultCount = grouped.size;
   const now = new Date();
   const lines: string[] = [];
+
+  if (master) {
+    lines.push(...formatMasterBlockLines(master));
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
 
   lines.push(
     "You are talking to a user who has shared the following context about themselves through their personal memory system. Use this information to personalize your responses without explicitly mentioning you have this data unless asked."
@@ -286,11 +385,25 @@ function generateMarkdown(
   nodes: BriefNode[],
   edges: BriefEdge[],
   nodeById: Map<string, BriefNode>,
-  vaultNameMap: Map<string, string>
+  vaultNameMap: Map<string, string>,
+  master: MasterBriefContext | null
 ): string {
   const grouped = groupByVault(nodes);
   const now = new Date();
   const lines: string[] = [];
+
+  if (master) {
+    lines.push("# Master node");
+    lines.push("");
+    lines.push(`**Name:** ${master.displayName}`);
+    if (master.bio.trim()) {
+      lines.push("");
+      lines.push(`**Bio:** ${master.bio.trim()}`);
+    }
+    lines.push("");
+    lines.push("---");
+    lines.push("");
+  }
 
   lines.push("# Memory Brief");
   lines.push(
@@ -358,7 +471,8 @@ function generateJson(
   nodes: BriefNode[],
   edges: BriefEdge[],
   nodeById: Map<string, BriefNode>,
-  _vaultNameMap: Map<string, string>
+  _vaultNameMap: Map<string, string>,
+  master: MasterBriefContext | null
 ): string {
   const grouped = groupByVault(nodes);
   const now = new Date();
@@ -436,13 +550,20 @@ function generateJson(
       vault: n.vaultName,
     }));
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     generated_at: now.toISOString(),
     total_memories: nodes.length,
     total_connections: edges.length,
     vaults,
     timeline,
   };
+
+  if (master) {
+    payload.master_node = {
+      name: master.displayName,
+      bio: master.bio.trim(),
+    };
+  }
 
   return JSON.stringify(payload, null, 2);
 }
@@ -451,7 +572,8 @@ function generateToml(
   nodes: BriefNode[],
   edges: BriefEdge[],
   nodeById: Map<string, BriefNode>,
-  _vaultNameMap: Map<string, string>
+  _vaultNameMap: Map<string, string>,
+  master: MasterBriefContext | null
 ): string {
   const grouped = groupByVault(nodes);
   const now = new Date();
@@ -461,6 +583,13 @@ function generateToml(
   lines.push(`total_memories = ${nodes.length}`);
   lines.push(`total_connections = ${edges.length}`);
   lines.push("");
+
+  if (master) {
+    lines.push("[master]");
+    lines.push(`name = ${escapeToml(master.displayName)}`);
+    lines.push(`bio = ${escapeToml(master.bio.trim() || "")}`);
+    lines.push("");
+  }
 
   for (const [vault, vaultNodes] of grouped) {
     const safeVault = vault.replace(/[^a-zA-Z0-9_-]/g, "_");

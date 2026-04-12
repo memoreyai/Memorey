@@ -82,6 +82,9 @@ export default function BriefPage() {
   const [brief, setBrief] = useState("");
   const [nodeCount, setNodeCount] = useState(0);
   const [edgeCount, setEdgeCount] = useState(0);
+  const [briefCanvasName, setBriefCanvasName] = useState<string | null>(null);
+  const [briefVaultNames, setBriefVaultNames] = useState<string[]>([]);
+  const [includedMasterNode, setIncludedMasterNode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -128,6 +131,7 @@ export default function BriefPage() {
           canvasId: canvasId || null,
           dateFrom: dateFrom || null,
           dateTo: dateTo || null,
+          includeMasterNode: true,
         }),
       });
 
@@ -135,6 +139,13 @@ export default function BriefPage() {
       setBrief(data.brief ?? "");
       setNodeCount(data.nodeCount ?? 0);
       setEdgeCount(data.edgeCount ?? 0);
+      setBriefCanvasName(
+        typeof data.canvasName === "string" ? data.canvasName : null
+      );
+      setBriefVaultNames(
+        Array.isArray(data.vaultNames) ? (data.vaultNames as string[]) : []
+      );
+      setIncludedMasterNode(Boolean(data.includedMasterNode));
     } catch (err) {
       console.error("Brief generation failed:", err);
       toast.error("Failed to generate brief");
@@ -193,15 +204,44 @@ export default function BriefPage() {
       <TrackPageView pagePath="/dashboard/brief" />
 
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3 md:px-6">
-        <Sparkles size={18} style={{ color: "var(--orange)" }} />
-        <span className="text-sm font-semibold" style={{ color: "var(--text)" }}>
-          Brief AI
-        </span>
-        <span className="text-xs" style={{ color: "var(--text2)" }}>
-          Generate context for any AI assistant
-        </span>
-        <div className="ml-auto">
+      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--border)] px-4 py-3 md:px-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Sparkles size={18} style={{ color: "var(--orange)" }} />
+            <span
+              className="text-sm font-semibold"
+              style={{ color: "var(--text)" }}
+            >
+              Brief AI
+            </span>
+            <span className="text-xs" style={{ color: "var(--text2)" }}>
+              Generate context for any AI assistant
+            </span>
+          </div>
+          {(briefCanvasName || briefVaultNames.length > 0 || includedMasterNode) &&
+          !loading ? (
+            <p className="max-w-full text-[11px] leading-snug" style={{ color: "var(--muted)" }}>
+              <span className="font-medium text-[var(--text2)]">Canvas:</span>{" "}
+              {briefCanvasName ?? "—"}
+              {briefVaultNames.length > 0 ? (
+                <>
+                  {" "}
+                  <span className="text-[var(--border)]">·</span>{" "}
+                  <span className="font-medium text-[var(--text2)]">Vaults:</span>{" "}
+                  {briefVaultNames.join(", ")}
+                </>
+              ) : null}
+              {includedMasterNode ? (
+                <>
+                  {" "}
+                  <span className="text-[var(--border)]">·</span>{" "}
+                  <span style={{ color: "var(--orange)" }}>Master node included</span>
+                </>
+              ) : null}
+            </p>
+          ) : null}
+        </div>
+        <div className="ml-auto shrink-0">
           <ThemeToggle />
         </div>
       </div>
