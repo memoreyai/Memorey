@@ -3293,7 +3293,7 @@ function Footer({ C }: { C: Record<string, string> }) {
         {[
           { label: "Privacy", href: "/privacy" },
           { label: "Terms", href: "/terms" },
-          { label: "Contact", href: "mailto:hey@memorey.co" },
+          { label: "Contact", href: "/contact" },
         ].map((l) => (
           <a
             key={l.label}

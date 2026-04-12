@@ -9,6 +9,7 @@ import {
   BarChart3,
   DollarSign,
   LayoutDashboard,
+  MessageSquare,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/activity", label: "Activity", icon: Activity },
   { href: "/admin/revenue", label: "Revenue", icon: DollarSign },
+  { href: "/admin/messages", label: "Messages", icon: MessageSquare },
 ] as const;
 
 export function AdminLayoutClient({
