@@ -65,6 +65,32 @@ export interface SyncResult {
 
 export type SyncStatus = "synced" | "syncing" | "offline" | "not_connected";
 
+// ── Vault slug → Supabase display name mapping ─────────────────────
+// memorey-core uses slugs (identity, knowledge, projects, …)
+// Supabase seeds display names (Personal, Study, Goals, …)
+const VAULT_SLUG_TO_DISPLAY: Record<string, string> = {
+  identity: "personal",
+  work: "work",
+  preferences: "preferences",
+  knowledge: "study",
+  relationships: "relationships",
+  projects: "goals",
+  history: "personal",
+  context: "personal",
+};
+
+function resolveVaultId(
+  vaultSlug: string,
+  nameToId: Map<string, string>
+): string | undefined {
+  const lower = vaultSlug.toLowerCase();
+  const direct = nameToId.get(lower);
+  if (direct) return direct;
+  const mapped = VAULT_SLUG_TO_DISPLAY[lower];
+  if (mapped) return nameToId.get(mapped);
+  return undefined;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function nodeToRow(
@@ -75,7 +101,7 @@ function nodeToRow(
   return {
     id: node.id,
     user_id: userId,
-    vault_id: vaultNameToId.get(node.vault) ?? node.vault,
+    vault_id: resolveVaultId(node.vault, vaultNameToId) ?? node.vault,
     title: node.fact.slice(0, 100),
     value: node.fact,
     confidence: node.confidence,
@@ -332,7 +358,7 @@ export class SyncService {
         const batch = pushable.slice(i, i + BATCH_SIZE);
         const rows = batch
           .map((node) => {
-            const vaultId = nameToId.get(node.vault.toLowerCase());
+            const vaultId = resolveVaultId(node.vault, nameToId);
             if (!vaultId) return null;
             return nodeToRow(node, this.userId!, nameToId);
           })

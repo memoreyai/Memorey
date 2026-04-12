@@ -11,35 +11,50 @@ import { formatZodError } from "@/lib/validation/formatZodError";
 import { useTrack } from "@/hooks/useTrack";
 import { useGraphStore } from "@/store/graphStore";
 import { useCanvasStore } from "@/store/canvasStore";
-import type { MemoryNode, UserSegment } from "@/types/memorey";
+import type { MemoryNode } from "@/types/memorey";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Check, Plus } from "lucide-react";
+import { ArrowLeft, Check, Plus, Sparkles, MousePointerClick, Download, Chrome } from "lucide-react";
 
 const TOTAL_STEPS = 4;
-
-const ROLES: { id: UserSegment; label: string }[] = [
-  { id: "founder", label: "Founder" },
-  { id: "researcher", label: "Researcher" },
-  { id: "student", label: "Student" },
-  { id: "consultant", label: "Consultant" },
-  { id: "developer", label: "Developer" },
-  { id: "designer", label: "Designer" },
-  { id: "other", label: "Other" },
-];
-
-const GOALS = [
-  { id: "decisions", label: "Remember important decisions" },
-  { id: "ideas", label: "Capture research and ideas" },
-  { id: "projects", label: "Organise work projects" },
-  { id: "ai_context", label: "Brief AI tools with context" },
-  { id: "goals", label: "Track goals and progress" },
-  { id: "other", label: "Other" },
-] as const;
 
 const VAULT_COLORS = [
   "#378ADD", "#F5C542", "#FF6600", "#FF5B8A",
   "#C792EA", "#A8E063", "#4FC1E9", "#888780",
   "#E05C5C", "#5DCAA5", "#F0A500", "#7C6FF0",
+];
+
+const VAULT_ICONS: Record<string, string> = {
+  Work: "💼",
+  Goals: "🎯",
+  Personal: "🏠",
+  Health: "💪",
+  Finance: "💰",
+  Study: "📚",
+  Relationships: "👥",
+  Preferences: "⚙️",
+};
+
+const TIPS = [
+  {
+    icon: Sparkles,
+    title: "Chat to create nodes",
+    description: "Use the AI chat to quickly create nodes with natural language.",
+  },
+  {
+    icon: MousePointerClick,
+    title: "Double-click the canvas",
+    description: "Add nodes visually by double-clicking anywhere on the canvas.",
+  },
+  {
+    icon: Download,
+    title: "Import conversations",
+    description: "Import from ChatGPT, Claude, or any AI tool to build your memory.",
+  },
+  {
+    icon: Chrome,
+    title: "Chrome extension",
+    description: "Install the extension to capture memories while browsing.",
+  },
 ];
 
 export default function OnboardingPage() {
@@ -51,33 +66,30 @@ export default function OnboardingPage() {
   const [isDark, setIsDark] = useState(true);
   const { track } = useTrack();
 
-  // Step 1: Personal details
+  // Step 1: Master node setup
   const [fullName, setFullName] = useState("");
-  const [selectedRole, setSelectedRole] = useState<UserSegment | null>(null);
-  const [otherRole, setOtherRole] = useState("");
+  const [bio, setBio] = useState("");
 
-  // Step 2: Goals
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const [otherGoal, setOtherGoal] = useState("");
-
-  // Step 3: Canvas + memory + vault
-  const [canvasName, setCanvasName] = useState("");
-  const [memoryText, setMemoryText] = useState("");
-  const [onboardingVaults, setOnboardingVaults] = useState<
-    { id: string; name: string; color: string }[]
+  // Step 2: Vault selection
+  const [allVaults, setAllVaults] = useState<
+    { id: string; name: string; color: string; isActive: boolean }[]
   >([]);
-  const [selectedVaultId, setSelectedVaultId] = useState<string | null>(null);
+  const [selectedVaultIds, setSelectedVaultIds] = useState<Set<string>>(new Set());
   const [isCreatingNewVault, setIsCreatingNewVault] = useState(false);
   const [newVaultName, setNewVaultName] = useState("");
   const [newVaultColor, setNewVaultColor] = useState("#5DCAA5");
 
-  // Step 4: Confirmation data
-  const [createdCanvasName, setCreatedCanvasName] = useState("");
-  const [createdMemory, setCreatedMemory] = useState("");
-  const [createdVaultName, setCreatedVaultName] = useState("");
+  // Step 3: First memory
+  const [memTitle, setMemTitle] = useState("");
+  const [memValue, setMemValue] = useState("");
+  const [memVaultId, setMemVaultId] = useState<string>("");
 
   const addNode = useGraphStore((s) => s.addNode);
   const setActiveCanvas = useCanvasStore((s) => s.setActiveCanvas);
+
+  // Transition direction for animations
+  const [direction, setDirection] = useState<"forward" | "back">("forward");
+  const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("memorey-theme");
@@ -91,7 +103,6 @@ export default function OnboardingPage() {
     localStorage.setItem("memorey-theme", isDark ? "dark" : "light");
   }, [isDark]);
 
-  // Load existing state
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -101,13 +112,14 @@ export default function OnboardingPage() {
       setUserId(user.id);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("onboarding_completed, display_name, full_name")
+        .select("onboarding_completed, display_name, full_name, master_node_bio")
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;
       if (profile?.onboarding_completed) { router.replace("/dashboard"); return; }
       if (profile?.full_name) setFullName(profile.full_name as string);
       else if (profile?.display_name) setFullName(profile.display_name as string);
+      if (profile?.master_node_bio) setBio(profile.master_node_bio as string);
       setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -118,9 +130,9 @@ export default function OnboardingPage() {
     track("onboarding_started", {});
   }, [loading, userId, track]);
 
-  // Load vaults when reaching step 3
+  // Seed and load vaults when reaching step 2
   useEffect(() => {
-    if (step !== 3 || !userId) return;
+    if (step !== 2 || !userId) return;
     let cancelled = false;
     const supabase = createClient();
     void (async () => {
@@ -132,27 +144,33 @@ export default function OnboardingPage() {
       if (!existing || existing.length === 0) {
         await supabase.rpc("seed_default_vaults", { p_user_id: userId });
       }
-      const { data: allVaults } = await supabase
+      const { data: vaults } = await supabase
         .from("category_vaults")
         .select("id, name, color, is_active, display_order")
         .eq("user_id", userId)
         .eq("is_active", true)
         .order("display_order", { ascending: true });
       if (cancelled) return;
-      const mapped = (allVaults ?? []).map((v) => ({
+      const mapped = (vaults ?? []).map((v) => ({
         id: v.id as string,
         name: v.name as string,
         color: (v.color as string) ?? "#5DCAA5",
+        isActive: true,
       }));
-      setOnboardingVaults(mapped);
-      if (mapped.length > 0 && !selectedVaultId) {
-        const personal = mapped.find((v) => v.name.toLowerCase() === "personal");
-        setSelectedVaultId(personal?.id ?? mapped[0].id);
-      }
+      setAllVaults(mapped);
+      setSelectedVaultIds(new Set(mapped.map((v) => v.id)));
     })();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, userId]);
+
+  // Set default vault for step 3
+  useEffect(() => {
+    if (step === 3 && !memVaultId && allVaults.length > 0) {
+      const selected = allVaults.filter((v) => selectedVaultIds.has(v.id));
+      const personal = selected.find((v) => v.name.toLowerCase() === "personal");
+      setMemVaultId(personal?.id ?? selected[0]?.id ?? allVaults[0].id);
+    }
+  }, [step, memVaultId, allVaults, selectedVaultIds]);
 
   const finishOnboarding = useCallback(async () => {
     if (!userId) return;
@@ -171,17 +189,79 @@ export default function OnboardingPage() {
   }, [userId, router, track]);
 
   const canProceed = useMemo(() => {
-    if (step === 1) return fullName.trim().length > 0 && selectedRole !== null;
-    if (step === 2) return selectedGoals.length >= 1;
-    if (step === 3)
-      return canvasName.trim().length > 0 && memoryText.trim().length > 0 && selectedVaultId !== null;
-    return true; // step 4 always
-  }, [step, fullName, selectedRole, selectedGoals, canvasName, memoryText, selectedVaultId]);
+    if (step === 1) return fullName.trim().length > 0;
+    if (step === 2) return selectedVaultIds.size >= 1;
+    if (step === 3) return true;
+    return true;
+  }, [step, fullName, selectedVaultIds]);
 
-  function toggleGoal(id: string) {
-    setSelectedGoals((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  function goToStep(target: number) {
+    if (target === step) return;
+    setDirection(target > step ? "forward" : "back");
+    setAnimating(true);
+    setTimeout(() => {
+      setStep(target);
+      setTimeout(() => setAnimating(false), 20);
+    }, 150);
+  }
+
+  async function ensureCanvasExists(): Promise<string | null> {
+    if (!userId) return null;
+    const supabase = createClient();
+
+    const { data: existingCanvases } = await supabase
+      .from("canvases")
+      .select("id")
+      .eq("user_id", userId)
+      .limit(1);
+
+    if (existingCanvases && existingCanvases.length > 0) {
+      const cid = (existingCanvases[0] as { id: string }).id;
+      await setActiveCanvas(cid, userId);
+      return cid;
+    }
+
+    const displayName = fullName.trim() || "My Canvas";
+    const { data: nc, error: canvasErr } = await supabase
+      .from("canvases")
+      .insert({
+        user_id: userId,
+        name: `${displayName}'s Canvas`,
+        emoji: null,
+        display_order: 1,
+        color: "#5DCAA5",
+        icon_key: null,
+      })
+      .select("id")
+      .single();
+
+    if (canvasErr || !nc) { toast.error("Could not create canvas"); return null; }
+    const canvasId = (nc as { id: string }).id;
+
+    const canvasStore = useCanvasStore.getState();
+    useCanvasStore.setState({
+      canvases: [...canvasStore.canvases, {
+        id: canvasId,
+        userId,
+        name: `${displayName}'s Canvas`,
+        emoji: null,
+        color: "#5DCAA5",
+        iconKey: null,
+        description: null,
+        masterNodeBio: bio.trim() || null,
+        masterNodeColor: "#FF6600",
+        displayOrder: 1,
+        isActive: true,
+        masterLineStyle: null,
+        masterLineColor: null,
+        createdAt: new Date().toISOString(),
+      }],
+    });
+
+    await supabase.rpc("seed_canvas_vaults", { p_user_id: userId, p_canvas_id: canvasId });
+    await supabase.from("profiles").update({ active_canvas_id: canvasId }).eq("id", userId);
+    await setActiveCanvas(canvasId, userId);
+    return canvasId;
   }
 
   async function handleNext() {
@@ -189,12 +269,11 @@ export default function OnboardingPage() {
     setSaving(true);
     try {
       if (step === 1) {
-        const segment = selectedRole === "other" ? "other" : selectedRole;
-        const patch = {
+        const patch: Record<string, unknown> = {
           display_name: fullName.trim(),
-          segment,
           onboarding_step: 1,
         };
+        if (bio.trim()) patch.master_node_bio = bio.trim();
         const check = onboardingProfilePatchSchema.safeParse(patch);
         if (!check.success) { toast.error(formatZodError(check.error)); return; }
         const res = await fetch("/api/profile/onboarding", {
@@ -204,11 +283,19 @@ export default function OnboardingPage() {
           body: JSON.stringify(check.data),
         });
         if (!res.ok) { toast.error("Could not save profile"); return; }
-        setStep(2);
+        goToStep(2);
       } else if (step === 2) {
-        // Save goals as memory_goals
-        const goalIds = selectedGoals.filter((g) => g !== "other");
-        const patch = { memory_goals: goalIds, onboarding_step: 2 };
+        // Deactivate unselected vaults
+        const supabase = createClient();
+        const deselected = allVaults.filter((v) => !selectedVaultIds.has(v.id));
+        for (const v of deselected) {
+          await supabase
+            .from("category_vaults")
+            .update({ is_active: false })
+            .eq("id", v.id)
+            .eq("user_id", userId);
+        }
+        const patch = { onboarding_step: 2 };
         const check = onboardingProfilePatchSchema.safeParse(patch);
         if (check.success) {
           await fetch("/api/profile/onboarding", {
@@ -218,9 +305,53 @@ export default function OnboardingPage() {
             body: JSON.stringify(check.data),
           });
         }
-        setStep(3);
+        goToStep(3);
       } else if (step === 3) {
-        await handleStep3Submit();
+        if (memTitle.trim() && memValue.trim() && memVaultId) {
+          const canvasId = await ensureCanvasExists();
+          if (!canvasId) return;
+          const supabase = createClient();
+          const { data: { session } } = await supabase.auth.getSession();
+          const selectedVault = allVaults.find((v) => v.id === memVaultId);
+          const nodeRes = await fetch("/api/memory/create", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session?.access_token ?? ""}`,
+            },
+            body: JSON.stringify({
+              userId,
+              vaultId: memVaultId,
+              canvasId,
+              title: memTitle.trim().slice(0, 100),
+              value: memValue.trim(),
+              source: "manual",
+            }),
+          });
+          if (nodeRes.ok) {
+            const { node } = (await nodeRes.json()) as { node: Record<string, unknown> };
+            if (node) {
+              const nodeObj: MemoryNode = {
+                id: node.id as string,
+                userId: node.user_id as string,
+                vaultId: node.vault_id as string,
+                vaultName: selectedVault?.name ?? "Personal",
+                canvasId: node.canvas_id as string | undefined,
+                title: node.title as string,
+                value: node.value as string,
+                confidence: (node.confidence as number) ?? 1,
+                source: "manual",
+                isActive: true,
+                createdAt: node.created_at as string,
+                updatedAt: node.updated_at as string,
+              };
+              addNode(nodeObj);
+            }
+          }
+        } else {
+          await ensureCanvasExists();
+        }
+        goToStep(4);
       } else if (step === 4) {
         await finishOnboarding();
       }
@@ -229,110 +360,43 @@ export default function OnboardingPage() {
     }
   }
 
-  async function handleStep3Submit() {
-    if (!userId || !selectedVaultId) return;
-    const supabase = createClient();
-
-    // Create canvas
-    const { data: newCanvas, error: canvasErr } = await supabase
-      .from("canvases")
-      .insert({
-        user_id: userId,
-        name: canvasName.trim(),
-        emoji: null,
-        display_order: 1,
-        color: "#5DCAA5",
-        icon_key: null,
-      })
-      .select()
-      .single();
-
-    if (canvasErr || !newCanvas) { toast.error("Could not create canvas"); return; }
-    const canvasId = (newCanvas as { id: string }).id;
-
-    // Add canvas to store optimistically (sidebar updates immediately)
-    const canvasStore = useCanvasStore.getState();
-    const mapped = {
-      id: canvasId,
-      userId,
-      name: canvasName.trim(),
-      emoji: null,
-      color: "#5DCAA5",
-      iconKey: null,
-      description: null,
-      masterNodeBio: null,
-      masterNodeColor: "#FF6600",
-      displayOrder: 1,
-      isActive: true,
-      masterLineStyle: null,
-      masterLineColor: null,
-      createdAt: new Date().toISOString(),
-    };
-    canvasStore.canvases = [...canvasStore.canvases, mapped];
-    useCanvasStore.setState({ canvases: canvasStore.canvases });
-
-    // Seed vaults and set active
-    await supabase.rpc("seed_canvas_vaults", { p_user_id: userId, p_canvas_id: canvasId });
-    await supabase.from("profiles").update({ active_canvas_id: canvasId }).eq("id", userId);
-    await setActiveCanvas(canvasId, userId);
-
-    // Create first memory node
-    const title = memoryText.trim().length > 80
-      ? memoryText.trim().slice(0, 77) + "..."
-      : memoryText.trim();
-
-    const { data: { session } } = await supabase.auth.getSession();
-    const selectedVault = onboardingVaults.find((v) => v.id === selectedVaultId);
-
-    const nodeRes = await fetch("/api/memory/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token ?? ""}`,
-      },
-      body: JSON.stringify({
-        userId,
-        vaultId: selectedVaultId,
-        canvasId,
-        title,
-        value: memoryText.trim(),
-        source: "manual",
-      }),
-    });
-
-    if (nodeRes.ok) {
-      const { node } = (await nodeRes.json()) as { node: Record<string, unknown> };
-      if (node) {
-        const nodeObj: MemoryNode = {
-          id: node.id as string,
-          userId: node.user_id as string,
-          vaultId: node.vault_id as string,
-          vaultName: selectedVault?.name ?? "Personal",
-          canvasId: node.canvas_id as string | undefined,
-          title: node.title as string,
-          value: node.value as string,
-          confidence: (node.confidence as number) ?? 1,
-          source: "manual",
-          isActive: true,
-          createdAt: node.created_at as string,
-          updatedAt: node.updated_at as string,
-        };
-        addNode(nodeObj);
+  async function handleSkip() {
+    if (saving) return;
+    if (step === 1) {
+      goToStep(2);
+    } else if (step === 2) {
+      goToStep(3);
+    } else if (step === 3) {
+      setSaving(true);
+      try {
+        await ensureCanvasExists();
+        goToStep(4);
+      } finally {
+        setSaving(false);
       }
+    } else if (step === 4) {
+      await finishOnboarding();
     }
+  }
 
-    // Store confirmation data
-    setCreatedCanvasName(canvasName.trim());
-    setCreatedMemory(memoryText.trim());
-    setCreatedVaultName(selectedVault?.name ?? "Personal");
-    setStep(4);
+  function toggleVault(id: string) {
+    setSelectedVaultIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllVaults() {
+    setSelectedVaultIds(new Set(allVaults.map((v) => v.id)));
   }
 
   async function createOnboardingVault() {
     if (!userId || !newVaultName.trim()) return;
     setSaving(true);
     const supabase = createClient();
-    const nextOrder = onboardingVaults.length + 1;
+    const nextOrder = allVaults.length + 1;
     const { data, error } = await supabase
       .from("category_vaults")
       .insert({
@@ -351,9 +415,10 @@ export default function OnboardingPage() {
       id: data.id as string,
       name: data.name as string,
       color: (data.color as string) ?? newVaultColor,
+      isActive: true,
     };
-    setOnboardingVaults((prev) => [...prev, newV]);
-    setSelectedVaultId(newV.id);
+    setAllVaults((prev) => [...prev, newV]);
+    setSelectedVaultIds((prev) => new Set([...prev, newV.id]));
     setNewVaultName("");
     setNewVaultColor("#5DCAA5");
     setIsCreatingNewVault(false);
@@ -370,12 +435,14 @@ export default function OnboardingPage() {
   }
 
   const stepCopy: Record<number, { title: string; subtitle: string }> = {
-    1: { title: "Welcome to Memorey", subtitle: "Tell us about yourself." },
-    2: { title: "What would you like to achieve?", subtitle: "Select all that apply." },
-    3: { title: "Set up your first memory", subtitle: "Name your canvas, pick a vault, and create your first memory." },
-    4: { title: "You're all set!", subtitle: "Here's what we created for you." },
+    1: { title: "Welcome to Memorey", subtitle: "Let's set up your memory space. Start by telling us about yourself." },
+    2: { title: "Organize your memories", subtitle: "Vaults are categories for your memories. Pick the ones relevant to you or create your own." },
+    3: { title: "Add your first memory", subtitle: "Try creating a memory node. You can also do this later from the dashboard." },
+    4: { title: "You're all set!", subtitle: "Here are some quick tips to get the most out of Memorey." },
   };
   const { title: stepTitle, subtitle: stepSubtitle } = stepCopy[step];
+
+  const selectedVaults = allVaults.filter((v) => selectedVaultIds.has(v.id));
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", padding: "24px", position: "relative" }}>
@@ -393,13 +460,24 @@ export default function OnboardingPage() {
         )}
       </button>
 
-      <div style={{ width: "100%", maxWidth: 520, background: "var(--bg3)", border: "1px solid var(--border)", borderRadius: "var(--r-xl)", padding: "40px", boxShadow: "var(--shadow-lg)" }}>
-        {/* Progress: Step X of 4 */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 540,
+          background: "var(--bg3)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-xl)",
+          padding: "40px",
+          boxShadow: "var(--shadow-lg)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Progress indicator */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 28 }}>
-          {step > 1 && step < 4 && (
+          {step > 1 && (
             <button
               type="button"
-              onClick={() => setStep(step - 1)}
+              onClick={() => goToStep(step - 1)}
               style={{ background: "none", border: "none", color: "var(--text2)", cursor: "pointer", padding: 0, display: "flex", alignItems: "center" }}
               aria-label="Go back"
             >
@@ -415,7 +493,7 @@ export default function OnboardingPage() {
                   width: n === step ? 24 : 16,
                   borderRadius: 2,
                   background: n <= step ? "var(--orange)" : "var(--border2)",
-                  transition: "all var(--t-base)",
+                  transition: "all 0.3s ease",
                 }}
               />
             ))}
@@ -423,111 +501,129 @@ export default function OnboardingPage() {
           <span style={{ fontSize: 11, color: "var(--muted)", whiteSpace: "nowrap" }}>Step {step} of 4</span>
         </div>
 
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6, fontFamily: "var(--font-display)" }}>{stepTitle}</h2>
-        <p style={{ fontSize: 14, color: "var(--text2)", marginBottom: 28, lineHeight: 1.6 }}>{stepSubtitle}</p>
+        <div
+          style={{
+            transition: animating ? "opacity 0.15s ease, transform 0.15s ease" : "none",
+            opacity: animating ? 0 : 1,
+            transform: animating
+              ? `translateX(${direction === "forward" ? "12px" : "-12px"})`
+              : "translateX(0)",
+          }}
+        >
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", marginBottom: 6, fontFamily: "var(--font-display)" }}>{stepTitle}</h2>
+          <p style={{ fontSize: 14, color: "var(--text2)", marginBottom: 28, lineHeight: 1.6 }}>{stepSubtitle}</p>
 
-        {/* ── Step 1: Personal details ── */}
-        {step === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Full name</label>
-              <input autoFocus value={fullName} onChange={(e) => setFullName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && canProceed) void handleNext(); }} placeholder="Your name"
-                style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none" }} />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Role</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {ROLES.map((r) => (
-                  <button key={r.id} type="button" onClick={() => setSelectedRole(r.id)}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 14px",
-                      background: selectedRole === r.id ? "var(--orange-dim)" : "var(--bg2)",
-                      border: `1.5px solid ${selectedRole === r.id ? "var(--orange-border)" : "var(--border)"}`,
-                      borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 500,
-                      color: selectedRole === r.id ? "var(--orange)" : "var(--text2)", transition: "all 0.15s",
-                    }}
-                  >
-                    {r.label}
-                    {selectedRole === r.id && <Check size={11} strokeWidth={2.5} />}
-                  </button>
-                ))}
+          {/* ── Step 1: Welcome + Master Node Setup ── */}
+          {step === 1 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>What should we call you?</label>
+                <input
+                  autoFocus
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && canProceed) void handleNext(); }}
+                  placeholder="Your name"
+                  style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none" }}
+                />
               </div>
-              {selectedRole === "other" && (
-                <input value={otherRole} onChange={(e) => setOtherRole(e.target.value)} placeholder="What do you do?" autoFocus
-                  style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none", marginTop: 10 }} />
-              )}
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Describe yourself in a line</label>
+                <input
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && canProceed) void handleNext(); }}
+                  placeholder="e.g., Product designer at a fintech startup"
+                  style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none" }}
+                />
+                <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>This becomes your master node identity on the canvas. Optional.</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Step 2: Goals ── */}
-        {step === 2 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {GOALS.map((g) => (
-              <button key={g.id} type="button" onClick={() => toggleGoal(g.id)}
+          {/* ── Step 2: Vault Selection ── */}
+          {step === 2 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {allVaults.length > 0 && selectedVaultIds.size < allVaults.length && (
+                <button
+                  type="button"
+                  onClick={selectAllVaults}
+                  style={{ alignSelf: "flex-end", background: "none", border: "none", fontSize: 12, color: "var(--orange)", cursor: "pointer", fontWeight: 500, marginBottom: -4 }}
+                >
+                  Select all
+                </button>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {allVaults.map((vault) => {
+                  const isSelected = selectedVaultIds.has(vault.id);
+                  return (
+                    <button
+                      key={vault.id}
+                      type="button"
+                      onClick={() => toggleVault(vault.id)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "12px 14px",
+                        background: isSelected ? `${vault.color}15` : "var(--bg2)",
+                        border: `1.5px solid ${isSelected ? vault.color : "var(--border)"}`,
+                        borderRadius: "var(--r-md)",
+                        cursor: "pointer",
+                        textAlign: "left",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>
+                        {VAULT_ICONS[vault.name] ?? "📁"}
+                      </span>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: isSelected ? "var(--text)" : "var(--text2)" }}>
+                        {vault.name}
+                      </span>
+                      <span
+                        style={{
+                          width: 18,
+                          height: 18,
+                          borderRadius: 4,
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: isSelected ? vault.color : "var(--bg4)",
+                          border: isSelected ? "none" : "1px solid var(--border2)",
+                          transition: "all 0.15s",
+                        }}
+                      >
+                        {isSelected && <Check size={11} color="#fff" strokeWidth={3} />}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* New vault button */}
+              <button
+                type="button"
+                onClick={() => setIsCreatingNewVault(!isCreatingNewVault)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "10px 14px",
-                  background: selectedGoals.includes(g.id) ? "var(--orange-dim)" : "var(--bg2)",
-                  border: `1px solid ${selectedGoals.includes(g.id) ? "var(--orange-border)" : "var(--border)"}`,
-                  borderRadius: "var(--r-md)", cursor: "pointer", textAlign: "left", width: "100%", transition: "all 0.15s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  padding: "10px",
+                  background: "var(--bg2)",
+                  border: "1.5px dashed var(--border2)",
+                  borderRadius: "var(--r-md)",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: "var(--text2)",
+                  transition: "all 0.15s",
                 }}
               >
-                <span style={{
-                  width: 18, height: 18, borderRadius: 4, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
-                  background: selectedGoals.includes(g.id) ? "var(--orange)" : "var(--bg4)",
-                  border: selectedGoals.includes(g.id) ? "none" : "1px solid var(--border2)",
-                }}>
-                  {selectedGoals.includes(g.id) && <Check size={11} color="#fff" strokeWidth={3} />}
-                </span>
-                <span style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>{g.label}</span>
+                <Plus size={14} /> Create custom vault
               </button>
-            ))}
-            {selectedGoals.includes("other") && (
-              <input value={otherGoal} onChange={(e) => setOtherGoal(e.target.value)} placeholder="Tell us more..." autoFocus
-                style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none", marginTop: 4 }} />
-            )}
-            <p style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>Select at least one.</p>
-          </div>
-        )}
 
-        {/* ── Step 3: Canvas + vault + memory ── */}
-        {step === 3 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            {/* Canvas name */}
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Canvas name</label>
-              <input autoFocus value={canvasName} onChange={(e) => setCanvasName(e.target.value)} placeholder='e.g. "My Work", "Personal", "Research"'
-                style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none" }} />
-            </div>
-
-            {/* Vault selector */}
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Choose a vault</label>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: isCreatingNewVault ? 10 : 0 }}>
-                {onboardingVaults.map((vault) => (
-                  <button key={vault.id} type="button" onClick={() => { setSelectedVaultId(vault.id); setIsCreatingNewVault(false); }}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px",
-                      background: selectedVaultId === vault.id ? `${vault.color}22` : "var(--bg2)",
-                      border: `1.5px solid ${selectedVaultId === vault.id ? vault.color : "var(--border)"}`,
-                      borderRadius: 20, cursor: "pointer", fontSize: 12, fontWeight: 500,
-                      color: selectedVaultId === vault.id ? vault.color : "var(--text2)", transition: "all 0.15s",
-                    }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: vault.color, flexShrink: 0 }} />
-                    {vault.name}
-                    {selectedVaultId === vault.id && <Check size={11} strokeWidth={2.5} />}
-                  </button>
-                ))}
-                <button type="button" onClick={() => setIsCreatingNewVault(!isCreatingNewVault)}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px",
-                    background: "var(--bg2)", border: "1.5px dashed var(--border2)", borderRadius: 20,
-                    cursor: "pointer", fontSize: 12, fontWeight: 500, color: "var(--text2)", transition: "all 0.15s",
-                  }}>
-                  <Plus size={12} /> New vault
-                </button>
-              </div>
               {isCreatingNewVault && (
                 <div style={{ padding: 12, background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)" }}>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
@@ -537,92 +633,181 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <input autoFocus value={newVaultName} onChange={(e) => setNewVaultName(e.target.value)}
+                    <input
+                      autoFocus
+                      value={newVaultName}
+                      onChange={(e) => setNewVaultName(e.target.value)}
                       onKeyDown={(e) => { if (e.key === "Enter") void createOnboardingVault(); if (e.key === "Escape") setIsCreatingNewVault(false); }}
                       placeholder="Vault name..."
-                      style={{ flex: 1, background: "var(--bg)", border: `2px solid ${newVaultColor}`, borderRadius: 6, padding: "6px 10px", color: "var(--text)", fontSize: 12, outline: "none" }} />
-                    <button type="button" onClick={() => void createOnboardingVault()} disabled={!newVaultName.trim() || saving}
-                      style={{ padding: "6px 14px", background: newVaultName.trim() ? "var(--orange)" : "var(--bg4)", border: "none", borderRadius: 6, cursor: newVaultName.trim() ? "pointer" : "not-allowed", fontSize: 12, fontWeight: 600, color: newVaultName.trim() ? "#fff" : "var(--muted)" }}>
+                      style={{ flex: 1, background: "var(--bg)", border: `2px solid ${newVaultColor}`, borderRadius: 6, padding: "6px 10px", color: "var(--text)", fontSize: 12, outline: "none" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void createOnboardingVault()}
+                      disabled={!newVaultName.trim() || saving}
+                      style={{
+                        padding: "6px 14px",
+                        background: newVaultName.trim() ? "var(--orange)" : "var(--bg4)",
+                        border: "none",
+                        borderRadius: 6,
+                        cursor: newVaultName.trim() ? "pointer" : "not-allowed",
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: newVaultName.trim() ? "#fff" : "var(--muted)",
+                      }}
+                    >
                       Add
                     </button>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Memory text */}
-            <div>
-              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>What is the first thing you want to remember?</label>
-              <Textarea value={memoryText} onChange={(e) => setMemoryText(e.target.value)}
-                placeholder="e.g. I prefer concise answers, work in fintech, and I'm based in London."
-                className={cn("min-h-[100px] resize-y", "border-[var(--border)] bg-[var(--bg2)] text-[var(--text)]", "placeholder:text-[var(--muted)]")} />
+              <p style={{ fontSize: 11, color: "var(--muted)" }}>
+                {selectedVaultIds.size} of {allVaults.length} selected. You can always add or remove vaults later.
+              </p>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ── Step 4: Confirmation ── */}
-        {step === 4 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ padding: "16px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Canvas</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text)" }}>{createdCanvasName}</div>
-            </div>
-            <div style={{ padding: "16px", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>First memory</div>
-              <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6 }}>{createdMemory}</div>
-              <div style={{ marginTop: 8 }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px", background: "var(--bg4)", borderRadius: 12, fontSize: 11, color: "var(--text2)" }}>
-                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: onboardingVaults.find((v) => v.name === createdVaultName)?.color ?? "#5DCAA5" }} />
-                  {createdVaultName}
-                </span>
+          {/* ── Step 3: First Memory Node ── */}
+          {step === 3 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Title</label>
+                <input
+                  autoFocus
+                  value={memTitle}
+                  onChange={(e) => setMemTitle(e.target.value)}
+                  placeholder="e.g., Learning React Native"
+                  style={{ width: "100%", boxSizing: "border-box", background: "var(--bg2)", border: "1px solid var(--border)", borderRadius: "var(--r-md)", padding: "9px 12px", color: "var(--text)", fontSize: 13, outline: "none" }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Content</label>
+                <Textarea
+                  value={memValue}
+                  onChange={(e) => setMemValue(e.target.value)}
+                  placeholder="e.g., Started learning React Native for our mobile app. Using Expo for faster development."
+                  className={cn("min-h-[100px] resize-y", "border-[var(--border)] bg-[var(--bg2)] text-[var(--text)]", "placeholder:text-[var(--muted)]")}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: "var(--text2)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Vault</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {selectedVaults.map((vault) => (
+                    <button
+                      key={vault.id}
+                      type="button"
+                      onClick={() => setMemVaultId(vault.id)}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        padding: "6px 12px",
+                        background: memVaultId === vault.id ? `${vault.color}22` : "var(--bg2)",
+                        border: `1.5px solid ${memVaultId === vault.id ? vault.color : "var(--border)"}`,
+                        borderRadius: 20,
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 500,
+                        color: memVaultId === vault.id ? vault.color : "var(--text2)",
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{ width: 7, height: 7, borderRadius: "50%", background: vault.color, flexShrink: 0 }} />
+                      {vault.name}
+                      {memVaultId === vault.id && <Check size={11} strokeWidth={2.5} />}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Continue / Open button */}
-        <button type="button" onClick={() => void handleNext()} disabled={!canProceed || saving}
+          {/* ── Step 4: Quick Tips ── */}
+          {step === 4 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {TIPS.map((tip) => {
+                const Icon = tip.icon;
+                return (
+                  <div
+                    key={tip.title}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 12,
+                      padding: "14px 16px",
+                      background: "var(--bg2)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "var(--r-md)",
+                    }}
+                  >
+                    <div style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: "var(--r-md)",
+                      background: "var(--orange-dim)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <Icon size={16} style={{ color: "var(--orange)" }} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 2 }}>{tip.title}</div>
+                      <div style={{ fontSize: 12, color: "var(--text2)", lineHeight: 1.5 }}>{tip.description}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Primary CTA */}
+        <button
+          type="button"
+          onClick={() => void handleNext()}
+          disabled={!canProceed || saving}
           style={{
-            width: "100%", padding: "11px 0",
+            width: "100%",
+            padding: "11px 0",
             background: canProceed && !saving ? "var(--orange)" : "var(--bg4)",
             color: canProceed && !saving ? "#fff" : "var(--muted)",
-            border: "none", borderRadius: "var(--r-md)", fontSize: 14, fontWeight: 600,
+            border: "none",
+            borderRadius: "var(--r-md)",
+            fontSize: 14,
+            fontWeight: 600,
             cursor: canProceed && !saving ? "pointer" : "not-allowed",
-            marginTop: 24, transition: "all var(--t-fast)",
+            marginTop: 24,
+            transition: "all var(--t-fast)",
           }}
         >
-          {step === 3 ? (saving ? "Setting up..." : "Create & continue") :
-           step === 4 ? (saving ? "Opening..." : "Open my Memorey") :
-           "Continue"}
+          {step === 1 ? "Continue"
+            : step === 2 ? "Continue"
+            : step === 3 ? (memTitle.trim() && memValue.trim() ? (saving ? "Creating..." : "Create & continue") : "Skip & continue")
+            : saving ? "Opening..." : "Go to Dashboard"}
         </button>
 
-        {/* Skip (steps 1-3 only) */}
+        {/* Skip link (steps 1-3) */}
         {step < 4 && (
-          <button type="button" disabled={saving}
-            onClick={async () => {
-              if (step === 1) { setStep(2); }
-              else if (step === 2) { setStep(3); }
-              else if (step === 3) {
-                // Skip step 3: create a default canvas without memory
-                setSaving(true);
-                try {
-                  const supabase = createClient();
-                  if (!userId) return;
-                  const { data: existing } = await supabase.from("category_vaults").select("id").eq("user_id", userId).limit(1);
-                  if (!existing || existing.length === 0) await supabase.rpc("seed_default_vaults", { p_user_id: userId });
-                  const { data: nc } = await supabase.from("canvases").insert({ user_id: userId, name: "My Canvas", emoji: null, display_order: 1, color: "#5DCAA5", icon_key: null }).select("id").single();
-                  if (nc) {
-                    const cid = (nc as { id: string }).id;
-                    await supabase.rpc("seed_canvas_vaults", { p_user_id: userId, p_canvas_id: cid });
-                    await supabase.from("profiles").update({ active_canvas_id: cid }).eq("id", userId);
-                  }
-                  await finishOnboarding();
-                } finally { setSaving(false); }
-              }
+          <button
+            type="button"
+            disabled={saving}
+            onClick={() => void handleSkip()}
+            style={{
+              display: "block",
+              width: "100%",
+              marginTop: 16,
+              background: "none",
+              border: "none",
+              fontSize: 13,
+              color: "var(--muted)",
+              cursor: saving ? "not-allowed" : "pointer",
+              textAlign: "center",
             }}
-            style={{ display: "block", width: "100%", marginTop: 16, background: "none", border: "none", fontSize: 13, color: "var(--muted)", cursor: saving ? "not-allowed" : "pointer", textAlign: "center" }}
           >
-            Skip for now
+            {step === 3 ? "Skip, take me to dashboard" : "Skip for now"}
           </button>
         )}
       </div>

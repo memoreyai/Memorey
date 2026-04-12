@@ -1008,6 +1008,7 @@ function MemoryNodeDetailSheet({
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [historyKey, setHistoryKey] = useState(0);
   const [connNodes, setConnNodes] = useState<ConnectedNode[]>([]);
   const { track } = useTrack();
 
@@ -1057,7 +1058,7 @@ function MemoryNodeDetailSheet({
       .then(({ data }) =>
         setHistory(mapHistoryRows((data ?? []) as Record<string, unknown>[]))
       );
-  }, [historyOpenForNode, selectedNodeId]);
+  }, [historyOpenForNode, selectedNodeId, historyKey]);
 
   useEffect(() => {
     if (!selectedNodeId) {
@@ -1091,19 +1092,47 @@ function MemoryNodeDetailSheet({
 
   const saveField = useCallback(
     async (field: "title" | "value", val: string) => {
-      if (!selectedNodeId || !userId) return;
+      if (!selectedNodeId || !userId || !node) return;
+      const oldTitle = node.title ?? "";
+      const oldValue = node.value ?? "";
+      const newTitle = field === "title" ? val : oldTitle;
+      const newValue = field === "value" ? val : oldValue;
+      if (field === "title" && val === oldTitle) return;
+      if (field === "value" && val === oldValue) return;
+
       setIsSaving(true);
-      const supabase = createClient();
-      await supabase
-        .from("memory_nodes")
-        .update({ [field]: val })
-        .eq("id", selectedNodeId)
-        .eq("user_id", userId);
-      track("node_edited", { field });
-      useGraphStore.getState().updateNode(selectedNodeId, { [field]: val });
-      setIsSaving(false);
+      try {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from("memory_nodes")
+          .update({ [field]: val })
+          .eq("id", selectedNodeId)
+          .eq("user_id", userId);
+
+        if (error) {
+          console.error("saveField update error:", error);
+          return;
+        }
+
+        await supabase.from("node_history").insert({
+          node_id: selectedNodeId,
+          user_id: userId,
+          old_title: oldTitle,
+          new_title: newTitle,
+          old_value: oldValue,
+          new_value: newValue,
+          change_summary: `${field} edited`,
+          triggered_by: "user",
+        });
+
+        track("node_edited", { field });
+        useGraphStore.getState().updateNode(selectedNodeId, { [field]: val });
+        setHistoryKey((k) => k + 1);
+      } finally {
+        setIsSaving(false);
+      }
     },
-    [selectedNodeId, userId, track]
+    [selectedNodeId, userId, node, track]
   );
 
   const saveColor = useCallback(
@@ -2084,20 +2113,37 @@ function MemoryNodeDetailSheet({
                     <button
                       type="button"
                       onClick={async () => {
-                        if (!selectedNodeId || !userId || !entry.old_value)
+                        if (!selectedNodeId || !userId || !entry.old_value || !node)
                           return;
                         const supabase = createClient();
                         const field = entry.field as "title" | "value";
-                        await supabase
+                        const currentTitle = node.title ?? "";
+                        const currentValue = node.value ?? "";
+                        const { error } = await supabase
                           .from("memory_nodes")
                           .update({ [field]: entry.old_value })
                           .eq("id", selectedNodeId)
                           .eq("user_id", userId);
+                        if (error) {
+                          toast.error("Failed to restore");
+                          return;
+                        }
+                        await supabase.from("node_history").insert({
+                          node_id: selectedNodeId,
+                          user_id: userId,
+                          old_title: currentTitle,
+                          new_title: field === "title" ? entry.old_value : currentTitle,
+                          old_value: currentValue,
+                          new_value: field === "value" ? entry.old_value : currentValue,
+                          change_summary: `${field} restored to previous version`,
+                          triggered_by: "user",
+                        });
                         useGraphStore.getState().updateNode(selectedNodeId, {
                           [field]: entry.old_value,
                         });
                         if (field === "title") setTitle(entry.old_value);
                         if (field === "value") setValue(entry.old_value);
+                        setHistoryKey((k) => k + 1);
                         toast.success("Version restored");
                       }}
                       style={{

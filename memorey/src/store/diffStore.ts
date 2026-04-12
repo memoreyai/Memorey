@@ -271,6 +271,7 @@ export const useDiffStore = create<DiffStoreState>()(
             }
             saved += 1;
           } else if (p.nodeId) {
+            const existingNode = graph.nodes.find((n) => n.id === p.nodeId);
             const { data, error } = await supabase
               .from("memory_nodes")
               .update({
@@ -290,6 +291,16 @@ export const useDiffStore = create<DiffStoreState>()(
               continue;
             }
             if (data) {
+              await supabase.from("node_history").insert({
+                node_id: p.nodeId,
+                user_id: userId,
+                old_title: existingNode?.title ?? "",
+                new_title: p.title.slice(0, 100),
+                old_value: existingNode?.value ?? "",
+                new_value: p.newValue.slice(0, 600),
+                change_summary: "Updated via AI proposal",
+                triggered_by: "ai_extract",
+              });
               const v =
                 vaults.find((x) => x.id === data.vault_id) ?? vault;
               graph.updateNode(

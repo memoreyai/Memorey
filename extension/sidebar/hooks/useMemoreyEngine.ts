@@ -102,9 +102,35 @@ export function useMemoreyEngine() {
 
     async function init() {
       try {
+        // Load AI extraction settings if configured
+        let llmConfig: { apiKey: string; model: string; baseUrl?: string } | undefined;
+        const aiSettingsRaw = await chromeStorageGet("memorey_ai_settings");
+        const aiKey = await chromeStorageGet("memorey_ai_key");
+        if (aiSettingsRaw && aiKey) {
+          try {
+            const s = JSON.parse(aiSettingsRaw);
+            if (s.enabled && aiKey.trim()) {
+              const provider = s.provider ?? "openai";
+              llmConfig = {
+                apiKey: aiKey,
+                model: s.model || (provider === "openai" ? "gpt-4o-mini" : "claude-sonnet-4-20250514"),
+                baseUrl: provider === "anthropic"
+                  ? "https://api.anthropic.com/v1"
+                  : undefined,
+              };
+            }
+          } catch { /* ignore malformed settings */ }
+        }
+
         const p = new MemoreyPipeline({
           storagePath: "memorey-graph.json",
+          ...(llmConfig ? { llm: llmConfig } : {}),
         });
+
+        // init() MUST be called first — it creates the graph and all engines.
+        // JsonStorage.load() will fail in Chrome extension context (no node:fs),
+        // which is fine — we load from chrome.storage.local below.
+        await p.init("extension-user");
 
         const stored = await chromeStorageGet(STORAGE_KEY);
         if (stored) {
@@ -117,8 +143,6 @@ export function useMemoreyEngine() {
             );
           }
         }
-
-        await p.init("extension-user");
 
         setPipeline(p);
         refreshState(p);

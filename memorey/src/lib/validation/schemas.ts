@@ -97,6 +97,7 @@ const PRIMARY_USE_CASES = [
 export const onboardingProfilePatchSchema = z
   .object({
     display_name: z.string().max(100).optional(),
+    master_node_bio: z.string().max(500).nullable().optional(),
     segment: z.enum(USER_SEGMENTS).nullable().optional(),
     ai_use_cases: z.array(z.enum(AI_USE_CASES)).optional(),
     memory_goals: z.array(z.enum(MEMORY_GOALS)).optional(),

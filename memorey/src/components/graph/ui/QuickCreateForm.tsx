@@ -88,53 +88,62 @@ export function QuickCreateForm({
       setFieldError(formatZodError(parsed.error));
       return;
     }
+
+    const v = vaults.find((x) => x.id === vaultId);
+    const now = new Date().toISOString();
+    const tempId = `temp-${crypto.randomUUID()}`;
+    const optimisticNode: MemoryNode = {
+      id: tempId,
+      userId,
+      vaultId,
+      vaultName: (v?.name ?? "Personal") as MemoryNode["vaultName"],
+      title,
+      value,
+      confidence: 1,
+      source: "manual",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+      canvasId: effectiveCanvasId ?? undefined,
+    };
+
+    onSaved(optimisticNode);
+    onClose();
+
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     if (!token) return;
-    const res = await fetch("/api/memory/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(parsed.data),
-    });
-    const json = (await res.json()) as { node?: Record<string, unknown>; error?: string };
-    if (!res.ok || !json.node) {
-      toast.error(json.error ?? "Could not save memory");
-      return;
+
+    try {
+      const res = await fetch("/api/memory/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(parsed.data),
+      });
+      const json = (await res.json()) as { node?: Record<string, unknown>; error?: string };
+      if (!res.ok || !json.node) {
+        toast.error(json.error ?? "Could not save memory");
+        return;
+      }
+      void fetch("/api/embed", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          nodeId: json.node.id as string,
+          userId,
+          text: `${title}\n${value}`,
+        }),
+      });
+    } catch {
+      toast.error("Could not save memory. Check your connection.");
     }
-    const row = json.node;
-    const v = vaults.find((x) => x.id === vaultId);
-    const node: MemoryNode = {
-      id: row.id as string,
-      userId: row.user_id as string,
-      vaultId: row.vault_id as string,
-      vaultName: (v?.name ?? "Personal") as MemoryNode["vaultName"],
-      title: row.title as string,
-      value: row.value as string,
-      confidence: (row.confidence as number) ?? 1,
-      source: (row.source as MemoryNode["source"]) ?? "manual",
-      isActive: row.is_active !== false,
-      createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string,
-      canvasId: (row.canvas_id as string | null) ?? undefined,
-    };
-    void fetch("/api/embed", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        nodeId: node.id,
-        userId,
-        text: `${node.title}\n${node.value}`,
-      }),
-    });
-    onSaved(node);
-    onClose();
   };
 
   return (

@@ -423,6 +423,56 @@ export default function DashboardSettingsPage() {
       </div>
 
       <div className="memorey-data-panel">
+        <div className="memorey-data-panel-header">Chrome Extension</div>
+        <div
+          className="border-b border-[var(--border)] px-[14px] py-2.5 text-[11px] leading-[1.45]"
+          style={{ color: muted }}
+        >
+          Connect the Memorey Chrome extension to sync your imported memories to
+          the cloud. Open the extension → Settings → paste your access token.
+        </div>
+        <div className="border-b border-[var(--border)] px-[14px] py-2.5">
+          <div
+            className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.06em]"
+            style={{ color: micro }}
+          >
+            Access Token
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 border-[var(--border2)] bg-transparent text-[12px]"
+            onClick={async () => {
+              const supabase = createClient();
+              const {
+                data: { session },
+              } = await supabase.auth.getSession();
+              if (!session?.access_token) {
+                toast.error("Sign in again to copy your access token.");
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(session.access_token);
+                toast.success(
+                  "Access token copied! Paste it in the extension → Settings → Connect."
+                );
+              } catch {
+                toast.error("Could not copy to clipboard.");
+              }
+            }}
+          >
+            <Copy className="mr-1.5 size-3" />
+            Copy Access Token
+          </Button>
+          <p className="mt-2 text-[10px]" style={{ color: micro }}>
+            This token is tied to your current session. If the extension
+            disconnects, copy a fresh token here and reconnect.
+          </p>
+        </div>
+      </div>
+
+      <div className="memorey-data-panel">
         <div className="memorey-data-panel-header">MCP integration</div>
         <div
           className="border-b border-[var(--border)] px-[14px] py-2.5 text-[11px] leading-[1.45]"

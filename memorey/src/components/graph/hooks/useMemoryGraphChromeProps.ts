@@ -370,11 +370,8 @@ export function useMemoryGraphChromeProps(b: ChromeBindings): MemoryGraphChromeP
       onQuickCreateClose: () => ui.setQuickCreate(null),
       onQuickCreateSaved: (node: MemoryNode) => {
         addNode(node);
-        if (r.pendingNodeDropRef.current) {
-          r.nodePositionsRef.current.set(node.id, r.pendingNodeDropRef.current);
-          r.nodeRelativePositionsRef.current.set(node.id, { dx: 0, dy: 0 });
-          r.pendingNodeDropRef.current = null;
-        } else if (eng.isMasterView) {
+        r.pendingNodeDropRef.current = null;
+        if (eng.isMasterView) {
           eng.placeMasterLayout();
         } else {
           setNodeInVaultGroup(node.id, node.vaultId ?? "", r.vaultLayoutRefs);
