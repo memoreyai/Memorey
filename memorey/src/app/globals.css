@@ -401,9 +401,20 @@
 }
 
 @layer base {
-  * {
+  *,
+  *::before,
+  *::after {
     @apply border-border;
-    outline-color: color-mix(in oklab, var(--ring) 50%, transparent);
+    outline: none;
+  }
+  *:focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--ring) 50%, transparent);
+    outline-offset: 2px;
+  }
+  canvas,
+  canvas:focus,
+  canvas:focus-visible {
+    outline: none !important;
   }
   body {
     @apply bg-background text-foreground;

@@ -353,6 +353,8 @@ export function MemoryGraphChrome(props: MemoryGraphChromeProps) {
             position: "absolute",
             inset: 0,
             top: 44,
+            outline: "none",
+            border: "none",
           }}
           onDragOver={onCanvasDragOver}
           onDragLeave={onCanvasDragLeave}
@@ -361,7 +363,7 @@ export function MemoryGraphChrome(props: MemoryGraphChromeProps) {
           <canvas
             ref={canvasRef}
             className="block h-full w-full touch-none"
-            style={{ cursor: "default" }}
+            style={{ cursor: "default", outline: "none", border: "none" }}
             onPointerDown={(e) => {
               if (legendOpen) onLegendClose();
               onPointerDown(e);

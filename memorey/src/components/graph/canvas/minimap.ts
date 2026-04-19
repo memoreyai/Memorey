@@ -519,5 +519,19 @@ export function drawMinimap(
   }
 
   ctx.restore();
+
+  ctx.strokeStyle = isDark
+    ? "rgba(255,255,255,0.08)"
+    : "rgba(0,0,0,0.08)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") {
+    ctx.roundRect(0, 0, MW, MH, clipR);
+  } else {
+    ctx.rect(0, 0, MW, MH);
+  }
+  ctx.stroke();
+
   ctx.restore();
 }

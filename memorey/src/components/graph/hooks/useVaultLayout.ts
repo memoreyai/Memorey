@@ -76,6 +76,7 @@ export function useVaultLayout(opts: {
   const prevCanvasIdRef = useRef<string | null>(null);
   const prevGraphCountRef = useRef<number | undefined>(undefined);
   const prevVaultCountRef = useRef<number | undefined>(undefined);
+  const didInitialFitRef = useRef(false);
 
   useEffect(() => {
     if (!optsRef.current.canvasReady) return;
@@ -109,6 +110,31 @@ export function useVaultLayout(opts: {
     } else {
       const nodes = useGraphStore.getState().graphData.nodes;
       placeAllNodes(nodes, v);
+    }
+
+    if (!didInitialFitRef.current) {
+      didInitialFitRef.current = true;
+      requestAnimationFrame(() => {
+        const o = optsRef.current;
+        const master = useCanvasStore.getState().isMasterView;
+        const staticRegs = o.vaultLayoutRefs.canvasRegionsRef.current;
+        const np = o.vaultLayoutRefs.nodePositionsRef.current;
+        const graphNodes = useGraphStore.getState().graphData.nodes;
+        const regionArg =
+          master && staticRegs.size > 0
+            ? computeDynamicMasterCanvasRegions(staticRegs, graphNodes, np)
+            : master
+              ? staticRegs
+              : undefined;
+        const to = computeFit(
+          o.vaultLayoutRefs.nodePositionsRef.current,
+          o.vaultLayoutRefs.vaultGroupPositionsRef.current,
+          o.dimsRef.current,
+          120,
+          regionArg
+        );
+        startFitAnimation(fitAnimRef, { ...o.transformRef.current }, to);
+      });
     }
   }, [
     opts.canvasReady,
