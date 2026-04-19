@@ -171,9 +171,12 @@ export function useGraphCanvasEvents(
       o.setEdgeContextMenu(null);
       return;
     }
+    const mmb = o.minimapBoundsRef.current;
     if (
-      sx >= o.minimapBoundsRef.current.x &&
-      sy >= o.minimapBoundsRef.current.y
+      sx >= mmb.x &&
+      sy >= mmb.y &&
+      sx <= mmb.x + mmb.w &&
+      sy <= mmb.y + mmb.h
     ) {
       o.handleMinimapClick(e.clientX, e.clientY);
       return;
@@ -802,7 +805,19 @@ export function useGraphCanvasEvents(
     if (!c) return;
     const w = (ev: WheelEvent) => {
       ev.preventDefault();
-      handleWheel(ev, c.getBoundingClientRect(), optsRef.current.transformRef.current);
+      const rect = c.getBoundingClientRect();
+      const sx = ev.clientX - rect.left;
+      const sy = ev.clientY - rect.top;
+      const mmb = optsRef.current.minimapBoundsRef.current;
+      if (
+        sx >= mmb.x &&
+        sy >= mmb.y &&
+        sx <= mmb.x + mmb.w &&
+        sy <= mmb.y + mmb.h
+      ) {
+        return;
+      }
+      handleWheel(ev, rect, optsRef.current.transformRef.current);
     };
     c.addEventListener("wheel", w, { passive: false });
     return () => c.removeEventListener("wheel", w);

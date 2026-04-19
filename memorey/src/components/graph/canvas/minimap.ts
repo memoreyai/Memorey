@@ -111,21 +111,20 @@ export function drawMinimap(
     y: wy * mmScale + oy,
   });
 
-  ctx.save();
-  ctx.fillStyle = options.isDark
-    ? CANVAS_MINIMAP_BG_DARK
-    : CANVAS_MINIMAP_BG_LIGHT;
-  ctx.fillRect(0, 0, MW, MH);
-
+  const clipR = 8;
   ctx.save();
   ctx.beginPath();
-  const clipR = 8;
   if (typeof ctx.roundRect === "function") {
     ctx.roundRect(0, 0, MW, MH, clipR);
   } else {
     ctx.rect(0, 0, MW, MH);
   }
   ctx.clip();
+
+  ctx.fillStyle = options.isDark
+    ? CANVAS_MINIMAP_BG_DARK
+    : CANVAS_MINIMAP_BG_LIGHT;
+  ctx.fillRect(0, 0, MW, MH);
 
   drawGrid(ctx, MW, MH, ox, oy, mmScale, options.isDark);
 
@@ -520,6 +519,7 @@ export function drawMinimap(
 
   ctx.restore();
 
+  ctx.save();
   ctx.strokeStyle = isDark
     ? "rgba(255,255,255,0.08)"
     : "rgba(0,0,0,0.08)";
@@ -532,6 +532,5 @@ export function drawMinimap(
     ctx.rect(0, 0, MW, MH);
   }
   ctx.stroke();
-
   ctx.restore();
 }
