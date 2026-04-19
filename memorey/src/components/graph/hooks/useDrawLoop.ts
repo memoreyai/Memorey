@@ -121,7 +121,8 @@ export function useDrawLoop(opts: {
       const semantic = graph.semanticSearchActive;
       const searchActive = highlights.size > 0 || semantic;
 
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const dpr = window.devicePixelRatio || 1;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       ctx.fillStyle = dark ? CANVAS_MAIN_BG_DARK : CANVAS_MAIN_BG_LIGHT;
       ctx.fillRect(0, 0, W, H);
@@ -552,7 +553,7 @@ export function useDrawLoop(opts: {
       const mmY = H - MINIMAP_H - MINIMAP_BOTTOM;
       minimapBoundsRef.current = { x: mmX, y: mmY, w: MINIMAP_W, h: MINIMAP_H };
       ctx.save();
-      ctx.setTransform(1, 0, 0, 1, mmX, mmY);
+      ctx.setTransform(dpr, 0, 0, dpr, mmX * dpr, mmY * dpr);
       drawMinimap(ctx, MINIMAP_W, MINIMAP_H, {
         nodePositions: np,
         nodes,
