@@ -6,13 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function POST() {
   try {
     const secret = process.env.DODO_SECRET_KEY?.trim();
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://memorey.co";
 
     if (!secret) {
       return NextResponse.json(
-        { error: "Billing is not configured." },
-        { status: 503 }
+        { error: "Server configuration error" },
+        { status: 500 }
       );
     }
 
@@ -50,7 +48,10 @@ export async function POST() {
 
     return NextResponse.json({ url: portal.link });
   } catch (err) {
-    console.error("[dodo/portal]", err);
+    console.error(
+      "[dodo/portal]",
+      err instanceof Error ? err.message : "unknown error"
+    );
     return NextResponse.json(
       { error: "Failed to open billing portal." },
       { status: 500 }

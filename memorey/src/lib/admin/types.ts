@@ -127,8 +127,8 @@ export interface AdminRevenueResponse {
   users_by_plan: { free: number; pro: number; enterprise: number };
   mrr_estimate_usd: number;
   arr_estimate_usd: number;
-  billing_connected: false;
-  churn_rate: null;
-  ltv: null;
+  billing_connected: boolean;
+  churn_rate: number | null;
+  ltv: number | null;
   notes: string;
 }

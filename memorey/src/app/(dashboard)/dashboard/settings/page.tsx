@@ -278,7 +278,7 @@ export default function DashboardSettingsPage() {
         </div>
       </div>
 
-      <div className="memorey-data-panel">
+      <div className="memorey-data-panel" id="plan-billing">
         <div className="memorey-data-panel-header">Plan &amp; billing</div>
         <div className="memorey-data-row flex-wrap">
           <span className="text-[11px] uppercase tracking-[0.06em]" style={{ color: micro }}>
@@ -327,12 +327,6 @@ export default function DashboardSettingsPage() {
           stay — nothing is deleted. You keep access to everything you saved.
           You can re-subscribe at any time and pick up where you left off.
         </div>
-        <div className="border-t border-[var(--border)] px-[14px] py-2.5">
-          <span className="text-[12px]" style={{ color: muted }}>
-            Pro plan upgrade coming soon.
-          </span>
-        </div>
-        {/* TODO: restore once Dodo Payments keys are configured
         <div className="flex flex-wrap gap-2 border-t border-[var(--border)] px-[14px] py-2.5">
           {!pro ? (
             <>
@@ -372,7 +366,6 @@ export default function DashboardSettingsPage() {
             </Button>
           ) : null}
         </div>
-        */}
       </div>
 
       <div className="memorey-data-panel">

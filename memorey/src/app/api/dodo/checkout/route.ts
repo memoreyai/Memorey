@@ -3,18 +3,21 @@ import DodoPayments from "dodopayments";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+function appOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://memorey.co";
+  return raw.replace(/\/$/, "");
+}
+
 export async function POST(request: Request) {
   try {
     const secret = process.env.DODO_SECRET_KEY?.trim();
     const monthlyPriceId = process.env.DODO_PRO_MONTHLY_PRICE_ID?.trim();
     const yearlyPriceId = process.env.DODO_PRO_YEARLY_PRICE_ID?.trim();
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://memorey.co";
 
     if (!secret || (!monthlyPriceId && !yearlyPriceId)) {
       return NextResponse.json(
-        { error: "Billing is not configured." },
-        { status: 503 }
+        { error: "Server configuration error" },
+        { status: 500 }
       );
     }
 
@@ -31,8 +34,8 @@ export async function POST(request: Request) {
     const productId = interval === "yearly" ? yearlyPriceId : monthlyPriceId;
     if (!productId) {
       return NextResponse.json(
-        { error: `No ${interval} price configured.` },
-        { status: 503 }
+        { error: "Server configuration error" },
+        { status: 500 }
       );
     }
 
@@ -56,12 +59,17 @@ export async function POST(request: Request) {
       customerPayload.customer_id = sub.dodo_customer_id;
     }
 
+    const origin = appOrigin();
+    const returnUrl = `${origin}/dashboard?upgraded=true`;
+    const cancelUrl = `${origin}/dashboard/settings`;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = await (dodo as any).payments.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
       customer: customerPayload,
       payment_link: true,
-      return_url: `${appUrl}/dashboard?upgraded=true`,
+      return_url: returnUrl,
+      cancel_url: cancelUrl,
       metadata: {
         supabase_user_id: user.id,
         interval,
@@ -70,7 +78,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.payment_link });
   } catch (err) {
-    console.error("[dodo/checkout]", err);
+    console.error(
+      "[dodo/checkout]",
+      err instanceof Error ? err.message : "unknown error"
+    );
     return NextResponse.json(
       { error: "Failed to create checkout session." },
       { status: 500 }

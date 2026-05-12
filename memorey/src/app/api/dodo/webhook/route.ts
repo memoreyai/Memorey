@@ -52,7 +52,10 @@ export async function POST(request: Request) {
     const secret = process.env.DODO_WEBHOOK_SECRET?.trim();
     if (!secret) {
       console.error("[dodo/webhook] DODO_WEBHOOK_SECRET not set");
-      return NextResponse.json({ error: "Not configured" }, { status: 503 });
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
     }
 
     const body = await request.text();
@@ -106,7 +109,7 @@ export async function POST(request: Request) {
           .eq("user_id", userId);
 
         console.log(
-          `[dodo/webhook] user ${userId} upgraded to pro (sub: ${data.subscription_id})`
+          `[dodo/webhook] subscription.active applied (sub: ${data.subscription_id})`
         );
         break;
       }
@@ -200,7 +203,7 @@ export async function POST(request: Request) {
           }
 
           console.log(
-            `[dodo/webhook] user ${sub.user_id} downgraded to free (${event.type})`
+            `[dodo/webhook] subscription downgraded to free (${event.type}, sub: ${data.subscription_id})`
           );
         }
         break;
@@ -228,16 +231,19 @@ export async function POST(request: Request) {
       case "payment.succeeded":
       case "payment.failed":
       case "payment.cancelled":
-        console.log(`[dodo/webhook] ${event.type}:`, event.data);
+        console.log(`[dodo/webhook] ${event.type}`);
         break;
 
       default:
-        console.log(`[dodo/webhook] unhandled event: ${event.type}`);
+        console.log(`[dodo/webhook] unhandled event type: ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    console.error("[dodo/webhook]", err);
+    console.error(
+      "[dodo/webhook]",
+      err instanceof Error ? err.message : "unknown error"
+    );
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 }

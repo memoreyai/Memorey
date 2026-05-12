@@ -397,11 +397,9 @@ export async function POST(request: Request) {
   try {
     const admin = createAdminClient();
     billingPlan = await getEffectivePlan(admin, user.id);
-    console.log("[ingest-link] Billing plan:", billingPlan);
     if (!isProPlan(billingPlan)) {
       const ym = currentYearMonth();
       const usage = await getMonthlyUsage(admin, user.id, ym);
-      console.log("[ingest-link] Usage for", ym, ":", JSON.stringify(usage));
       if (usage.shareLinkCount >= FREE_SHARE_LINKS_PER_MONTH) {
         console.error("[ingest-link] EXIT: share link limit reached", usage.shareLinkCount, ">=", FREE_SHARE_LINKS_PER_MONTH);
         return NextResponse.json(

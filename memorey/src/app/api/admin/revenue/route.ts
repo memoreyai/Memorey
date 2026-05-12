@@ -33,11 +33,11 @@ export async function GET() {
     users_by_plan,
     mrr_estimate_usd,
     arr_estimate_usd,
-    billing_connected: false,
+    billing_connected: true,
     churn_rate: null,
     ltv: null,
     notes:
-      "MRR/ARR are placeholders (pro × $8, enterprise × $50). Churn and LTV require Dodo webhook data.",
+      "MRR/ARR are estimates from plan counts × assumed ARPU ($8/mo Pro, $50/mo Enterprise). Subscription state is updated from Dodo webhooks; churn and LTV are not computed in-app yet.",
   };
 
   return NextResponse.json(body);

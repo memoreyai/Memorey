@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import type { AdminRevenueResponse } from "@/lib/admin/types";
 
-const PRO_RATE = 10;
+const PRO_RATE = 8;
 const ENT_RATE = 50;
 
 function formatUsd(n: number) {
@@ -114,8 +114,9 @@ export default function AdminRevenuePage() {
   return (
     <div className="space-y-6">
       <div className="rounded-[var(--r-card)] border border-amber-500/35 bg-amber-500/10 px-4 py-3 text-[13px] text-amber-100/95">
-        Dodo Payments integration pending — figures are estimates based on plan
-        counts and assumed pricing ($8/mo Pro, $50/mo Enterprise).
+        MRR/ARR below are estimates from active plan counts × assumed pricing
+        ($8/mo Pro, $50/mo Enterprise). Actual collected revenue may differ from
+        Dodo dashboard totals.
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -254,7 +255,7 @@ export default function AdminRevenuePage() {
           </CardHeader>
           <CardContent>
             <p className="text-[13px] text-[var(--text2)]">
-              Available after billing integration
+              Not computed in-app yet — export analytics or use Dodo reporting.
             </p>
           </CardContent>
         </Card>
@@ -267,7 +268,7 @@ export default function AdminRevenuePage() {
           </CardHeader>
           <CardContent>
             <p className="text-[13px] text-[var(--text2)]">
-              Available after billing integration
+              Not computed in-app yet — export analytics or use Dodo reporting.
             </p>
           </CardContent>
         </Card>

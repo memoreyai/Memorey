@@ -334,7 +334,7 @@ export default function AdminOverviewPage() {
               <CardHeader>
                 <CardTitle>MRR</CardTitle>
                 <p className="text-[11px] text-[var(--text2)]">
-                  Estimates — billing pending
+                  Estimate from plan mix × ARPU
                 </p>
               </CardHeader>
               <CardContent>
@@ -347,7 +347,7 @@ export default function AdminOverviewPage() {
               <CardHeader>
                 <CardTitle>ARR</CardTitle>
                 <p className="text-[11px] text-[var(--text2)]">
-                  Estimates — billing pending
+                  Estimate from plan mix × ARPU
                 </p>
               </CardHeader>
               <CardContent>
