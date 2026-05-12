@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import DodoPayments from "dodopayments";
+import DodoPayments, { APIError } from "dodopayments";
+import type { PaymentCreateParams } from "dodopayments/resources/payments.js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -7,6 +8,15 @@ function appOrigin(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://memorey.co";
   return raw.replace(/\/$/, "");
 }
+
+/** Placeholder billing — `payments.create` requires it; customer completes real details on Dodo checkout. */
+const CHECKOUT_BILLING_PLACEHOLDER: PaymentCreateParams["billing"] = {
+  country: "US",
+  state: "CA",
+  city: "San Francisco",
+  street: "1 Market Street",
+  zipcode: "94105",
+};
 
 export async function POST(request: Request) {
   try {
@@ -29,9 +39,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const body = await request.json().catch(() => ({}));
-    const interval: "monthly" | "yearly" = body.interval === "yearly" ? "yearly" : "monthly";
+    const interval: "monthly" | "yearly" =
+      body.interval === "yearly" ? "yearly" : "monthly";
 
-    const productId = interval === "yearly" ? yearlyPriceId : monthlyPriceId;
+    const productId =
+      interval === "yearly" ? yearlyPriceId : monthlyPriceId;
     if (!productId) {
       return NextResponse.json(
         { error: "Server configuration error" },
@@ -51,37 +63,56 @@ export async function POST(request: Request) {
       environment: secret.startsWith("sk_test_") ? "test_mode" : "live_mode",
     });
 
-    const customerPayload: Record<string, string> = {
-      email: user.email ?? "",
-      name: user.user_metadata?.full_name ?? user.email ?? "",
-    };
-    if (sub?.dodo_customer_id) {
-      customerPayload.customer_id = sub.dodo_customer_id;
+    const customer: PaymentCreateParams["customer"] = sub?.dodo_customer_id
+      ? { customer_id: sub.dodo_customer_id }
+      : {
+          email: user.email?.trim() || "",
+          name:
+            (user.user_metadata?.full_name as string | undefined)?.trim() ||
+            user.email?.trim() ||
+            "Memorey user",
+        };
+
+    if (
+      !sub?.dodo_customer_id &&
+      !(user.email && user.email.trim().length > 0)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Your account needs an email address to subscribe. Update your profile or sign-in provider.",
+        },
+        { status: 400 }
+      );
     }
 
     const origin = appOrigin();
     const returnUrl = `${origin}/dashboard?upgraded=true`;
-    const cancelUrl = `${origin}/dashboard/settings`;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const session = await (dodo as any).payments.create({
+    const createBody: PaymentCreateParams = {
+      billing: CHECKOUT_BILLING_PLACEHOLDER,
+      customer,
       product_cart: [{ product_id: productId, quantity: 1 }],
-      customer: customerPayload,
       payment_link: true,
       return_url: returnUrl,
-      cancel_url: cancelUrl,
       metadata: {
         supabase_user_id: user.id,
         interval,
       },
-    });
+    };
+
+    const session = await dodo.payments.create(createBody);
 
     return NextResponse.json({ url: session.payment_link });
   } catch (err) {
-    console.error(
-      "[dodo/checkout]",
-      err instanceof Error ? err.message : "unknown error"
-    );
+    if (err instanceof APIError) {
+      console.error("[dodo/checkout]", err.status, err.message);
+    } else {
+      console.error(
+        "[dodo/checkout]",
+        err instanceof Error ? err.message : "unknown error"
+      );
+    }
     return NextResponse.json(
       { error: "Failed to create checkout session." },
       { status: 500 }
