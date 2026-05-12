@@ -23,6 +23,11 @@ export async function POST(request: Request) {
     const secret = process.env.DODO_SECRET_KEY?.trim();
     const monthlyPriceId = process.env.DODO_PRO_MONTHLY_PRICE_ID?.trim();
     const yearlyPriceId = process.env.DODO_PRO_YEARLY_PRICE_ID?.trim();
+    console.log("[dodo/checkout] env check", {
+      hasSecret: !!secret,
+      hasMonthlyId: !!process.env.DODO_PRO_MONTHLY_PRICE_ID,
+      hasYearlyId: !!process.env.DODO_PRO_YEARLY_PRICE_ID,
+    });
 
     if (!secret || (!monthlyPriceId && !yearlyPriceId)) {
       return NextResponse.json(
@@ -35,6 +40,7 @@ export async function POST(request: Request) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    console.log("[dodo/checkout] user", user?.id);
     if (!user)
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
@@ -57,6 +63,7 @@ export async function POST(request: Request) {
       .select("dodo_customer_id")
       .eq("user_id", user.id)
       .maybeSingle();
+    console.log("[dodo/checkout] subscription fetch done");
 
     const dodo = new DodoPayments({
       bearerToken: secret,
@@ -101,6 +108,7 @@ export async function POST(request: Request) {
       },
     };
 
+    console.log("[dodo/checkout] calling dodo");
     console.log("[dodo/checkout] payload", JSON.stringify(createBody, null, 2));
     const session = await dodo.payments.create(createBody);
 
