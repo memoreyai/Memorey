@@ -57,14 +57,18 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log("[dodo/checkout] creating admin client");
     const admin = createAdminClient();
+    console.log("[dodo/checkout] admin client created");
     const { data: sub } = await admin
       .from("subscriptions")
       .select("dodo_customer_id")
       .eq("user_id", user.id)
       .maybeSingle();
+    console.log("[dodo/checkout] sub", sub?.dodo_customer_id ?? "none");
     console.log("[dodo/checkout] subscription fetch done");
 
+    console.log("[dodo/checkout] creating dodo client");
     const dodo = new DodoPayments({
       bearerToken: secret,
       environment: "live_mode",
