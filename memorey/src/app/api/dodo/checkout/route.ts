@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import DodoPayments, { APIError } from "dodopayments";
-import type { PaymentCreateParams } from "dodopayments";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+type PaymentCreateParams = Parameters<DodoPayments["payments"]["create"]>[0];
 
 function appOrigin(): string {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://memorey.co";
