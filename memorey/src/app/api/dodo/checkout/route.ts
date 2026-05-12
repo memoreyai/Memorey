@@ -63,13 +63,13 @@ export async function POST(request: Request) {
     }
 
     const origin = appOrigin();
-    const returnUrl = `${origin}/dashboard?upgraded=true`;
+    const settingsUrl = `${origin}/dashboard/settings`;
 
     const checkoutUrl = new URL(
       `https://checkout.dodopayments.com/buy/${productId}`
     );
     checkoutUrl.searchParams.set("quantity", "1");
-    checkoutUrl.searchParams.set("redirect_url", returnUrl);
+    checkoutUrl.searchParams.set("redirect_url", settingsUrl);
     checkoutUrl.searchParams.set("email", user.email ?? "");
     checkoutUrl.searchParams.set("metadata[supabase_user_id]", user.id);
     checkoutUrl.searchParams.set("metadata[interval]", interval);

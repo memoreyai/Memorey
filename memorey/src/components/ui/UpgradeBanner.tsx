@@ -32,6 +32,14 @@ export function UpgradeBanner() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [load]);
+
   const onDismiss = () => {
     try {
       sessionStorage.setItem(DISMISS_KEY, "1");

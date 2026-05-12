@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { resolveAvatarUrl } from "@/lib/resolveAvatarUrl";
@@ -10,6 +11,7 @@ import {
 } from "@/components/layout/DashboardShell";
 import { DashboardLayoutSkeleton } from "@/components/layout/DashboardLayoutSkeleton";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { CheckoutReturnToast } from "@/components/billing/CheckoutReturnToast";
 import { useCanvasStore } from "@/store/canvasStore";
 import type { PlanTier } from "@/types/memorey";
 
@@ -101,6 +103,9 @@ export default function DashboardLayout({
 
   return (
     <>
+      <Suspense fallback={null}>
+        <CheckoutReturnToast />
+      </Suspense>
       <DashboardShell user={user}>{children}</DashboardShell>
       <OnboardingTour />
     </>
