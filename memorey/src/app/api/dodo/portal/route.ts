@@ -37,7 +37,7 @@ export async function POST() {
 
     const dodo = new DodoPayments({
       bearerToken: secret,
-      environment: secret.startsWith("sk_test_") ? "test_mode" : "live_mode",
+      environment: "live_mode",
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

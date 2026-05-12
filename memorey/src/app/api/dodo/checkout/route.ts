@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     const dodo = new DodoPayments({
       bearerToken: secret,
-      environment: secret.startsWith("sk_test_") ? "test_mode" : "live_mode",
+      environment: "live_mode",
     });
 
     const customer: PaymentCreateParams["customer"] = sub?.dodo_customer_id
