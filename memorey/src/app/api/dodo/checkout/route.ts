@@ -101,6 +101,7 @@ export async function POST(request: Request) {
       },
     };
 
+    console.log("[dodo/checkout] payload", JSON.stringify(createBody, null, 2));
     const session = await dodo.payments.create(createBody);
 
     return NextResponse.json({ url: session.payment_link });
