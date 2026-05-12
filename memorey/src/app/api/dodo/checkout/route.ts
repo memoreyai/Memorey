@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import DodoPayments, { APIError } from "dodopayments";
-import type { PaymentCreateParams } from "dodopayments/resources/payments.js";
+import type { PaymentCreateParams } from "dodopayments";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
